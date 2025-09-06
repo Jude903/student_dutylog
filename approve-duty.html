@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <meta name="description" content="PHINMA Cagayan de Oro College Student Duty Approval System">
+  <meta name="keywords" content="PHINMA COC, student duty, duty approval, college management, Cagayan de Oro">
+
+  <!-- Favicons -->
+  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/aos/aos.css" rel="stylesheet">
+  <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
+  <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
+
+  <!-- Main CSS File -->
+  <link href="assets/css/main.css" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary-color: #2c3e50;
+      --secondary-color: #3498db;
+      --success-color: #27ae60;
+      --warning-color: #f39c12;
+      --danger-color: #e74c3c;
+      --light-color: #f8f9fa;
+      --dark-color: #343a40;
+    }
+    
+    .filter-section {
+      background-color: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .duty-card {
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+      margin-bottom: 20px;
+      border-left: 4px solid #6c757d;
+      background: white;
+    }
+    
+    .duty-card.pending {
+      border-left-color: var(--warning-color);
+    }
+    
+    .duty-card.approved {
+      border-left-color: var(--success-color);
+    }
+    
+    .duty-card.rejected {
+      border-left-color: var(--danger-color);
+    }
+    
+    .status-badge {
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    
+    .status-pending {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+    
+    .status-approved {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    
+    .status-rejected {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    
+    .student-info {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    .student-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: var(--secondary-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    
+    .modal-content {
+      border-radius: 10px;
+      border: none;
+      box-shadow: 0 5px 25px rgba(0,0,0,0.15);
+    }
+    
+    .modal-header {
+      background-color: var(--primary-color);
+      color: white;
+      border-top-left-radius: 10px;
+      border-top-right-radius: 10px;
+    }
+    
+    .details-row {
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .time-badge {
+      background-color: #e9ecef;
+      padding: 5px 10px;
+      border-radius: 15px;
+      font-size: 0.85rem;
+    }
+    
+    .remarks-section {
+      background-color: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+    }
+    
+    .btn-approve {
+      background-color: var(--success-color);
+      border-color: var(--success-color);
+    }
+    
+    .btn-reject {
+      background-color: var(--danger-color);
+      border-color: var(--danger-color);
+    }
+    
+    .btn-approve:hover {
+      background-color: #219653;
+      border-color: #219653;
+    }
+    
+    .btn-reject:hover {
+      background-color: #c0392b;
+      border-color: #c0392b;
+    }
+    
+    .stats-card {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+      color: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    
+    .stats-number {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0;
+    }
+    
+    .stats-label {
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+  </style>
+</head>
+
+<body class="index-page">
+
+  <header id="header" class="header sticky-top">
+    <div class="branding d-flex align-items-center">
+      <div class="container position-relative d-flex align-items-center justify-content-between">
+        <a href="index.html" class="logo d-flex align-items-center">
+          <img src="assets/img/CSDL logo.png" alt="">
+          <h1 class="sitename">CSDL</h1>
+        </a>
+
+        <nav id="navmenu" class="navmenu">
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li class="dropdown">
+              <a href="#"></i>Duty Options</a>
+              <ul class="dropdown-menu">
+                  <li><a href="assign-duty.html"></i>Assign Duty</a></li>
+                  <li><a href="approve-duty.html"></i>Approve Duty</a></li>
+                  <li><a href="log-duty.html"></i>Log Duty</a></li>
+                  <li><a href="view-duty.html"></i>View Duty</a></li>
+                  <li><a href="monitor-duty.html"></i>Monitor Duty</a></li>
+              </ul>
+          </li>
+            <li><a href="evaluate-student.html">Evaluate Student</a></li>
+          </ul>
+          <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+
+  <main class="main">
+
+    <!-- Page Title -->
+    <div class="page-title light-background">
+      <div class="container d-lg-flex justify-content-between align-items-center">
+        <h1 class="mb-2 mb-lg-0">Approve Duty Hours</h1>
+        <nav class="breadcrumbs">
+          <ol>
+            <li><a href="index.html">Home</a></li>
+            <li class="current">Approve Duty</li>
+          </ol>
+        </nav>
+      </div>
+    </div><!-- End Page Title -->
+
+    <!-- Approval Section -->
+    <section id="approval" class="approval section">
+      <div class="container" data-aos="fade-up" data-aos-delay="100">
+        
+        <!-- Stats Overview -->
+        <div class="row mb-4">
+          <div class="col-md-4">
+            <div class="stats-card">
+              <p class="stats-number" id="pendingCount">0</p>
+              <p class="stats-label">Pending Approvals</p>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stats-card">
+              <p class="stats-number" id="approvedCount">0</p>
+              <p class="stats-label">Approved Duties</p>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stats-card">
+              <p class="stats-number" id="rejectedCount">0</p>
+              <p class="stats-label">Rejected Duties</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Filter Section -->
+        <div class="filter-section">
+          <div class="row">
+            <div class="col-md-3">
+              <div class="form-group">
+                <label for="statusFilter">Status</label>
+                <select class="form-control" id="statusFilter">
+                  <option value="all">All Statuses</option>
+                  <option value="pending" selected>Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-group">
+                <label for="studentFilter">Student</label>
+                <select class="form-control" id="studentFilter">
+                  <option value="all">All Students</option>
+                  <option value="7">Student 1</option>
+                  <option value="8">Student 2</option>
+                  <option value="9">Student 3</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-group">
+                <label for="dateFilter">Date</label>
+                <input type="date" class="form-control" id="dateFilter">
+              </div>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+              <button class="btn btn-primary w-100" id="applyFilters">Apply Filters</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="row" id="dutiesContainer">
+          <!-- Duty entries will be dynamically inserted here -->
+        </div>
+
+      </div>
+    </section><!-- /Approval Section -->
+
+  </main>
+
+  <!-- Approval Modal -->
+  <div class="modal fade" id="approvalModal" tabindex="-1" aria-labelledby="approvalModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="approvalModalLabel">Review Duty Entry</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="details-row">
+            <div class="student-info">
+              <div class="student-avatar" id="modalStudentAvatar">S</div>
+              <div>
+                <h5 id="modalStudentName">Student Name</h5>
+                <div class="d-flex gap-3">
+                  <span class="time-badge"><i class="bi bi-calendar me-1"></i> <span id="modalDate">2023-10-15</span></span>
+                  <span class="time-badge"><i class="bi bi-clock me-1"></i> <span id="modalHours">0</span> hours</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="details-row">
+            <h6>Duty Information</h6>
+            <p><strong>Duty Type:</strong> <span id="modalDutyType">ID Station</span></p>
+            <p><strong>Task Description:</strong></p>
+            <div class="alert alert-light" id="modalDescription">
+              No description provided.
+            </div>
+          </div>
+          
+          <div class="details-row">
+            <h6>Instructor Remarks</h6>
+            <div class="mb-3">
+              <label for="remarksInput" class="form-label">Provide your remarks (required for rejection)</label>
+              <textarea class="form-control" id="remarksInput" rows="3" placeholder="Enter your remarks here..."></textarea>
+              <div class="form-text">For rejected entries, please provide specific feedback for improvement.</div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-reject text-white" id="rejectBtn">Reject</button>
+          <button type="button" class="btn btn-approve text-white" id="approveBtn">Approve</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer id="footer" class="footer dark-background">
+    <div class="container footer-top">
+      <div class="row gy-4">
+        <div class="col-lg-5 col-md-12 footer-about">
+          <a href="index.html" class="logo d-flex align-items-center">
+            <span class="sitename">Student Duty Log</span>
+          </a>
+          <p>Empowering PHINMA Cagayan de Oro College with innovative student duty management solutions. Streamlining workflows, enhancing accountability, and fostering academic excellence through technology tailored for Filipino students.</p>
+          <div class="social-links d-flex mt-4">
+            <a href=""><i class="bi bi-twitter-x"></i></a>
+            <a href=""><i class="bi bi-facebook"></i></a>
+            <a href=""><i class="bi bi-instagram"></i></a>
+            <a href=""><i class="bi bi-linkedin"></i></a>
+          </div>
+        </div>
+
+        <div class="col-lg-2 col-6 footer-links">
+          <h4>Quick Links</h4>
+          <ul>
+            <li><a href="#">Home</a></li>
+            <li><a href="#">Dashboard</a></li>
+            <li><a href="#">Student Portal</a></li>
+            <li><a href="#">Help Center</a></li>
+            <li><a href="#">Contact Support</a></li>
+          </ul>
+        </div>
+
+        <div class="col-lg-2 col-6 footer-links">
+          <h4>Colleges</h4>
+          <ul>
+            <li><a href="#">Engineering & Architecture</a></li>
+            <li><a href="#">Business & Accountancy</a></li>
+            <li><a href="#">Education</a></li>
+            <li><a href="#">Health Sciences</a></li>
+            <li><a href="#">Liberal Arts & Sciences</a></li>
+            <li><a href="#">Computer Studies</a></li>
+          </ul>
+        </div>
+
+        <div class="col-lg-3 col-md-12 footer-contact text-center text-md-start">
+          <h4>PHINMA COC Campus</h4>
+          <p>Kauswagan Highway</p>
+          <p>Cagayan de Oro City</p>
+          <p>Misamis Oriental 9000, Philippines</p>
+          <p class="mt-4"><strong>Phone:</strong> <span>(088) 562-6731</span></p>
+          <p><strong>Email:</strong> <span>registrar@phinmacoc.edu.ph</span></p>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="container copyright text-center mt-4">
+      <p>© <span>Copyright</span> <strong class="px-1 sitename">PHINMA Cagayan de Oro College</strong> <span>All Rights Reserved</span></p>
+      <div class="credits">
+        Part of the PHINMA Education Network
+      </div>
+    </div>
+
+  </footer>
+
+  <!-- Scroll Top -->
+  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+  <!-- Preloader -->
+  <div id="preloader"></div>
+
+  <!-- Vendor JS Files -->
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+  <script src="assets/vendor/aos/aos.js"></script>
+  <script src="assets/vendor/swiper/swiper-bundle.min.js"></script>
+  <script src="assets/vendor/glightbox/js/glightbox.min.js"></script>
+
+  <!-- Main JS File -->
+  <script src="assets/js/main.js"></script>
+
+  <script>
+    // Sample duty entries data - in a real application, this would come from the database
+    const dutyEntries = [
+      {
+        id: 1,
+        duty_id: 1,
+        student_id: 7,
+        student_name: "Student 1",
+        hours: 8.00,
+        task_description: "I'm serving New students to get their ID from 8am to 5pm",
+        date: "2025-09-03",
+        status: "pending",
+        duty_type: "ID Station",
+        created_at: "2025-09-04T13:34:42"
+      },
+      {
+        id: 2,
+        duty_id: 2,
+        student_id: 8,
+        student_name: "Student 2",
+        hours: 4.50,
+        task_description: "Organized books in the science section and assisted visitors",
+        date: "2025-09-02",
+        status: "pending",
+        duty_type: "Library Assistant",
+        created_at: "2025-09-03T10:15:22"
+      },
+      {
+        id: 3,
+        duty_id: 3,
+        student_id: 9,
+        student_name: "Student 3",
+        hours: 6.00,
+        task_description: "Assisted in administrative tasks and document filing",
+        date: "2025-09-04",
+        status: "pending",
+        duty_type: "Office Assistant",
+        created_at: "2025-09-04T09:30:15"
+      },
+      {
+        id: 4,
+        duty_id: 1,
+        student_id: 7,
+        student_name: "Student 1",
+        hours: 7.50,
+        task_description: "Helped with orientation day activities and student registration",
+        date: "2025-09-05",
+        status: "approved",
+        duty_type: "ID Station",
+        instructor_feedback: "Good work assisting new students. Showed initiative and helped streamline the process.",
+        approval_date: "2025-09-05T14:22:10",
+        created_at: "2025-09-05T12:30:45"
+      },
+      {
+        id: 5,
+        duty_id: 2,
+        student_id: 8,
+        student_name: "Student 2",
+        hours: 5.00,
+        task_description: "Cataloging new arrivals and maintaining reading area",
+        date: "2025-09-03",
+        status: "rejected",
+        duty_type: "Library Assistant",
+        instructor_feedback: "Incomplete timesheet and missing supervisor signature. Please ensure all required fields are completed and signed by your supervisor before submission.",
+        approval_date: "2025-09-04T16:45:30",
+        created_at: "2025-09-03T17:20:35"
+      }
+    ];
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // Render duty entries and update stats
+      renderDutyEntries(dutyEntries);
+      updateStats(dutyEntries);
+      
+      // Filter functionality
+      document.getElementById('applyFilters').addEventListener('click', function() {
+        const statusFilter = document.getElementById('statusFilter').value;
+        const studentFilter = document.getElementById('studentFilter').value;
+        const dateFilter = document.getElementById('dateFilter').value;
+        
+        let filteredEntries = dutyEntries;
+        
+        if (statusFilter !== 'all') {
+          filteredEntries = filteredEntries.filter(entry => entry.status === statusFilter);
+        }
+        
+        if (studentFilter !== 'all') {
+          filteredEntries = filteredEntries.filter(entry => entry.student_id.toString() === studentFilter);
+        }
+        
+        if (dateFilter) {
+          filteredEntries = filteredEntries.filter(entry => entry.date === dateFilter);
+        }
+        
+        renderDutyEntries(filteredEntries);
+      });
+      
+      // Set up modal handlers
+      const approvalModal = new bootstrap.Modal(document.getElementById('approvalModal'));
+      let currentEntryId = null;
+      
+      // Approve button handler
+      document.getElementById('approveBtn').addEventListener('click', function() {
+        if (currentEntryId !== null) {
+          const remarks = document.getElementById('remarksInput').value;
+          
+          // In a real application, this would be an AJAX call to the server
+          console.log('Approving entry:', currentEntryId);
+          console.log('Remarks:', remarks);
+          
+          // Update UI
+          const entryElement = document.querySelector(`[data-entry-id="${currentEntryId}"]`);
+          if (entryElement) {
+            entryElement.querySelector('.status-badge').className = 'status-badge status-approved';
+            entryElement.querySelector('.status-badge').textContent = 'Approved';
+            entryElement.className = 'duty-card approved';
+            
+            // Add remarks if provided
+            if (remarks) {
+              const remarksSection = document.createElement('div');
+              remarksSection.className = 'remarks-section mt-3';
+              remarksSection.innerHTML = `
+                <h6>Instructor Remarks:</h6>
+                <p class="mb-0">${remarks}</p>
+              `;
+              entryElement.querySelector('.card-body').appendChild(remarksSection);
+            }
+          }
+          
+          // Show success message
+          alert('Duty hours approved successfully!');
+          
+          // Close modal
+          approvalModal.hide();
+          
+          // Update stats
+          updateStats(dutyEntries);
+        }
+      });
+      
+      // Reject button handler
+      document.getElementById('rejectBtn').addEventListener('click', function() {
+        const remarks = document.getElementById('remarksInput').value;
+        if (!remarks) {
+          alert('Please provide remarks before rejecting.');
+          return;
+        }
+        
+        if (currentEntryId !== null) {
+          // In a real application, this would be an AJAX call to the server
+          console.log('Rejecting entry:', currentEntryId);
+          console.log('Remarks:', remarks);
+          
+          // Update UI
+          const entryElement = document.querySelector(`[data-entry-id="${currentEntryId}"]`);
+          if (entryElement) {
+            entryElement.querySelector('.status-badge').className = 'status-badge status-rejected';
+            entryElement.querySelector('.status-badge').textContent = 'Rejected';
+            entryElement.className = 'duty-card rejected';
+            
+            // Add remarks
+            const remarksSection = document.createElement('div');
+            remarksSection.className = 'remarks-section mt-3';
+            remarksSection.innerHTML = `
+              <h6>Instructor Remarks:</h6>
+              <p class="mb-0">${remarks}</p>
+            `;
+            entryElement.querySelector('.card-body').appendChild(remarksSection);
+          }
+          
+          // Show success message
+          alert('Duty hours rejected with provided remarks.');
+          
+          // Close modal
+          approvalModal.hide();
+          
+          // Update stats
+          updateStats(dutyEntries);
+        }
+      });
+    });
+    
+    function renderDutyEntries(entries) {
+      const container = document.getElementById('dutiesContainer');
+      container.innerHTML = '';
+      
+      if (entries.length === 0) {
+        container.innerHTML = `
+          <div class="col-12 text-center py-5">
+            <i class="bi bi-inbox display-1 text-muted"></i>
+            <h3 class="mt-3">No duty entries found</h3>
+            <p class="text-muted">Try adjusting your filters to see more results</p>
+          </div>
+        `;
+        return;
+      }
+      
+      entries.forEach(entry => {
+        const statusClass = `status-${entry.status}`;
+        const statusText = entry.status.charAt(0).toUpperCase() + entry.status.slice(1);
+        
+        const card = document.createElement('div');
+        card.className = `col-12 duty-card ${entry.status}`;
+        card.dataset.entryId = entry.id;
+        
+        card.innerHTML = `
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <div>
+                <h5 class="card-title">${entry.duty_type}</h5>
+                <p class="card-subtitle text-muted">${entry.date}</p>
+              </div>
+              <span class="status-badge ${statusClass}">${statusText}</span>
+            </div>
+            
+            <div class="student-info">
+              <div class="student-avatar">${entry.student_name.charAt(0)}</div>
+              <div>
+                <h6 class="mb-0">${entry.student_name}</h6>
+                <small class="text-muted">Submitted: ${new Date(entry.created_at).toLocaleDateString()}</small>
+              </div>
+            </div>
+            
+            <div class="mt-3">
+              <p class="card-text">${entry.task_description}</p>
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-center mt-3">
+              <span class="time-badge"><i class="bi bi-clock"></i> ${entry.hours} hours</span>
+              ${entry.status === 'pending' ? `
+                <button class="btn btn-outline-primary review-btn" data-entry-id="${entry.id}">
+                  <i class="bi bi-eye"></i> Review
+                </button>
+              ` : `
+                <div>
+                  <small class="text-muted">${entry.status === 'approved' ? 'Approved' : 'Rejected'} on ${new Date(entry.approval_date).toLocaleDateString()}</small>
+                  ${entry.instructor_feedback ? `
+                    <div class="remarks-section mt-2">
+                      <h6 class="mb-1">Instructor Remarks:</h6>
+                      <p class="mb-0 small">${entry.instructor_feedback}</p>
+                    </div>
+                  ` : ''}
+                </div>
+              `}
+            </div>
+          </div>
+        `;
+        
+        container.appendChild(card);
+      });
+      
+      // Add event listeners to review buttons
+      document.querySelectorAll('.review-btn').forEach(button => {
+        button.addEventListener('click', function() {
+          const entryId = this.getAttribute('data-entry-id');
+          openReviewModal(entryId);
+        });
+      });
+    }
+    
+    function openReviewModal(entryId) {
+      // In a real application, this would fetch the specific entry from the server
+      // For now, we'll use the sample data
+      const entry = dutyEntries.find(e => e.id == entryId);
+      if (!entry) return;
+      
+      // Populate modal with entry data
+      document.getElementById('modalStudentAvatar').textContent = entry.student_name.charAt(0);
+      document.getElementById('modalStudentName').textContent = entry.student_name;
+      document.getElementById('modalDate').textContent = entry.date;
+      document.getElementById('modalHours').textContent = entry.hours;
+      document.getElementById('modalDutyType').textContent = entry.duty_type;
+      document.getElementById('modalDescription').textContent = entry.task_description;
+      document.getElementById('remarksInput').value = '';
+      
+      // Store current entry ID
+      currentEntryId = entryId;
+      
+      // Show modal
+      const approvalModal = new bootstrap.Modal(document.getElementById('approvalModal'));
+      approvalModal.show();
+    }
+    
+    function updateStats(entries) {
+      const pendingCount = entries.filter(entry => entry.status === 'pending').length;
+      const approvedCount = entries.filter(entry => entry.status === 'approved').length;
+      const rejectedCount = entries.filter(entry => entry.status === 'rejected').length;
+      
+      document.getElementById('pendingCount').textContent = pendingCount;
+      document.getElementById('approvedCount').textContent = approvedCount;
+      document.getElementById('rejectedCount').textContent = rejectedCount;
+    }
+  </script>
+
+</body>
+
+</html>

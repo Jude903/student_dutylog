@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <meta name="description" content="PHINMA Cagayan de Oro College Student Duty Log System">
+  <meta name="keywords" content="PHINMA COC, student duty, duty log, college management, Cagayan de Oro">
+
+  <!-- Favicons -->
+  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/aos/aos.css" rel="stylesheet">
+  <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
+  <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
+
+  <!-- Main CSS File -->
+  <link href="assets/css/main.css" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary-color: #2c3e50;
+      --secondary-color: #3498db;
+      --success-color: #27ae60;
+      --warning-color: #f39c12;
+      --danger-color: #e74c3c;
+      --light-color: #f8f9fa;
+      --dark-color: #343a40;
+    }
+    
+    .log-section {
+      background-color: #f8f9fa;
+      padding: 30px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .form-section {
+      margin-bottom: 25px;
+    }
+    
+    .section-title {
+      border-bottom: 2px solid #f1f1f1;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+      font-weight: 600;
+      color: #2c3e50;
+    }
+    
+    .time-inputs {
+      display: flex;
+      gap: 15px;
+    }
+    
+    .time-inputs .form-group {
+      flex: 1;
+    }
+    
+    .hours-calculated {
+      background-color: #e9ecef;
+      padding: 10px 15px;
+      border-radius: 5px;
+      margin-top: 10px;
+      font-weight: 600;
+      text-align: center;
+    }
+    
+    .signature-pad {
+      border: 2px dashed #dee2e6;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 15px;
+      background-color: white;
+      cursor: crosshair;
+    }
+    
+    .signature-actions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    
+    .duty-card {
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+      margin-bottom: 20px;
+      border-left: 4px solid var(--secondary-color);
+      background: white;
+    }
+    
+    .status-badge {
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    
+    .status-pending {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+    
+    .status-approved {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    
+    .status-rejected {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    
+    .time-badge {
+      background-color: #e9ecef;
+      padding: 5px 10px;
+      border-radius: 15px;
+      font-size: 0.85rem;
+    }
+    
+    .stats-card {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+      color: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    
+    .stats-number {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0;
+    }
+    
+    .stats-label {
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+    
+    @media (max-width: 768px) {
+      .time-inputs {
+        flex-direction: column;
+        gap: 10px;
+      }
+    }
+  </style>
+</head>
+
+<body class="index-page">
+
+  <header id="header" class="header sticky-top">
+    <div class="branding d-flex align-items-center">
+      <div class="container position-relative d-flex align-items-center justify-content-between">
+        <a href="index.html" class="logo d-flex align-items-center">
+          <img src="assets/img/CSDL logo.png" alt="">
+          <h1 class="sitename">CSDL</h1>
+        </a>
+
+        <nav id="navmenu" class="navmenu">
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li class="dropdown">
+              <a href="#"></i>Duty Options</a>
+              <ul class="dropdown-menu">
+                  <li><a href="assign-duty.html"></i>Assign Duty</a></li>
+                  <li><a href="approve-duty.html"></i>Approve Duty</a></li>
+                  <li><a href="log-duty.html"></i>Log Duty</a></li>
+                  <li><a href="view-duty.html"></i>View Duty</a></li>
+                  <li><a href="monitor-duty.html"></i>Monitor Duty</a></li>
+              </ul>
+          </li>
+            <li><a href="evaluate-student.html">Evaluate Student</a></li>
+          </ul>
+          <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+
+  <main class="main">
+
+    <!-- Page Title -->
+    <div class="page-title light-background">
+      <div class="container d-lg-flex justify-content-between align-items-center">
+        <h1 class="mb-2 mb-lg-0">Log Duty Hours</h1>
+        <nav class="breadcrumbs">
+          <ol>
+            <li><a href="index.html">Home</a></li>
+            <li class="current">Log Duty</li>
+          </ol>
+        </nav>
+      </div>
+    </div><!-- End Page Title -->
+
+    <!-- Log Section -->
+    <section id="log" class="log section">
+      <div class="container" data-aos="fade-up" data-aos-delay="100">
+        
+        <!-- Stats Overview -->
+        <div class="row mb-4">
+          <div class="col-md-4">
+            <div class="stats-card">
+              <p class="stats-number" id="totalHours">0</p>
+              <p class="stats-label">Total Hours Logged</p>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stats-card">
+              <p class="stats-number" id="pendingCount">0</p>
+              <p class="stats-label">Pending Approval</p>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stats-card">
+              <p class="stats-number" id="completedCount">0</p>
+              <p class="stats-label">Completed Duties</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="col-lg-8">
+            <div class="log-section">
+              <h3 class="section-title">Duty Information</h3>
+              
+              <div class="form-section">
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group mb-3">
+                      <label for="dutySelect" class="form-label">Select Duty</label>
+                      <select class="form-control" id="dutySelect">
+                        <option value="">-- Select Duty --</option>
+                        <option value="1">ID Station (90 hours required)</option>
+                        <option value="2">Library Assistant (60 hours required)</option>
+                        <option value="3">Office Assistant (75 hours required)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group mb-3">
+                      <label for="dutyDate" class="form-label">Date</label>
+                      <input type="date" class="form-control" id="dutyDate" required>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="form-section">
+                <h5>Time Log</h5>
+                <div class="time-inputs">
+                  <div class="form-group">
+                    <label for="timeIn" class="form-label">Time In</label>
+                    <input type="time" class="form-control" id="timeIn" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="timeOut" class="form-label">Time Out</label>
+                    <input type="time" class="form-control" id="timeOut" required>
+                  </div>
+                </div>
+                <div class="hours-calculated" id="hoursCalculated">
+                  Total hours: 0.00
+                </div>
+              </div>
+              
+              <div class="form-section">
+                <h5>Task Description</h5>
+                <div class="mb-3">
+                  <label for="taskDescription" class="form-label">Describe tasks performed during this duty period</label>
+                  <textarea class="form-control" id="taskDescription" rows="4" placeholder="Describe the duties and tasks you performed..." required></textarea>
+                </div>
+              </div>
+              
+              <div class="form-section">
+                <h5>Signature</h5>
+                <p class="text-muted">Please provide your signature to verify this duty log</p>
+                
+                <div class="signature-pad-container">
+                  <div class="signature-actions">
+                    <button class="btn btn-outline-secondary btn-sm" id="clearSignature">
+                      <i class="bi bi-x-circle"></i> Clear
+                    </button>
+                  </div>
+                  <canvas id="signaturePad" class="signature-pad" width="500" height="200"></canvas>
+                  <input type="hidden" id="signatureData">
+                </div>
+              </div>
+              
+              <div class="d-grid gap-2 mt-4">
+                <button class="btn btn-primary btn-lg" id="submitDutyBtn">
+                  <i class="bi bi-check-circle"></i> Submit Duty Log
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-lg-4">
+            <div class="log-section">
+              <h3 class="section-title">Recent Logs</h3>
+              <div id="recentLogs">
+                <!-- Recent logs will be populated here -->
+                <div class="text-center py-4">
+                  <i class="bi bi-inbox display-4 text-muted"></i>
+                  <p class="mt-2">No recent duty logs</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section><!-- /Log Section -->
+
+  </main>
+
+  <footer id="footer" class="footer dark-background">
+    <div class="container footer-top">
+      <div class="row gy-4">
+        <div class="col-lg-5 col-md-12 footer-about">
+          <a href="index.html" class="logo d-flex align-items-center">
+            <span class="sitename">Student Duty Log</span>
+          </a>
+          <p>Empowering PHINMA Cagayan de Oro College with innovative student duty management solutions. Streamlining workflows, enhancing accountability, and fostering academic excellence through technology tailored for Filipino students.</p>
+          <div class="social-links d-flex mt-4">
+            <a href=""><i class="bi bi-twitter-x"></i></a>
+            <a href=""><i class="bi bi-facebook"></i></a>
+            <a href=""><i class="bi bi-instagram"></i></a>
+            <a href=""><i class="bi bi-linkedin"></i></a>
+          </div>
+        </div>
+
+        <div class="col-lg-2 col-6 footer-links">
+          <h4>Quick Links</h4>
+          <ul>
+            <li><a href="#">Home</a></li>
+            <li><a href="#">Dashboard</a></li>
+            <li><a href="#">Student Portal</a></li>
+            <li><a href="#">Help Center</a></li>
+            <li><a href="#">Contact Support</a></li>
+          </ul>
+        </div>
+
+        <div class="col-lg-2 col-6 footer-links">
+          <h4>Colleges</h4>
+          <ul>
+            <li><a href="#">Engineering & Architecture</a></li>
+            <li><a href="#">Business & Accountancy</a></li>
+            <li><a href="#">Education</a></li>
+            <li><a href="#">Health Sciences</a></li>
+            <li><a href="#">Liberal Arts & Sciences</a></li>
+            <li><a href="#">Computer Studies</a></li>
+          </ul>
+        </div>
+
+        <div class="col-lg-3 col-md-12 footer-contact text-center text-md-start">
+          <h4>PHINMA COC Campus</h4>
+          <p>Kauswagan Highway</p>
+          <p>Cagayan de Oro City</p>
+          <p>Misamis Oriental 9000, Philippines</p>
+          <p class="mt-4"><strong>Phone:</strong> <span>(088) 562-6731</span></p>
+          <p><strong>Email:</strong> <span>registrar@phinmacoc.edu.ph</span></p>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="container copyright text-center mt-4">
+      <p>© <span>Copyright</span> <strong class="px-1 sitename">PHINMA Cagayan de Oro College</strong> <span>All Rights Reserved</span></p>
+      <div class="credits">
+        Part of the PHINMA Education Network
+      </div>
+    </div>
+
+  </footer>
+
+  <!-- Scroll Top -->
+  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+  <!-- Preloader -->
+  <div id="preloader"></div>
+
+  <!-- Vendor JS Files -->
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+  <script src="assets/vendor/aos/aos.js"></script>
+  <script src="assets/vendor/swiper/swiper-bundle.min.js"></script>
+  <script src="assets/vendor/glightbox/js/glightbox.min.js"></script>
+
+  <!-- Main JS File -->
+  <script src="assets/js/main.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Set default date to today
+      const today = new Date();
+      document.getElementById('dutyDate').valueAsDate = today;
+      
+      // Sample data for recent logs
+      const recentLogs = [
+        {
+          id: 1,
+          date: "2025-09-03",
+          timeIn: "08:00",
+          timeOut: "17:00",
+          hours: 8.00,
+          dutyType: "ID Station",
+          status: "approved",
+          taskDescription: "Served new students to get their ID cards"
+        },
+        {
+          id: 2,
+          date: "2025-09-02",
+          timeIn: "09:30",
+          timeOut: "14:00",
+          hours: 4.50,
+          dutyType: "Library Assistant",
+          status: "pending",
+          taskDescription: "Organized books in the science section"
+        }
+      ];
+      
+      // Render recent logs
+      renderRecentLogs(recentLogs);
+      updateStats(recentLogs);
+      
+      // Calculate hours when time inputs change
+      document.getElementById('timeIn').addEventListener('change', calculateHours);
+      document.getElementById('timeOut').addEventListener('change', calculateHours);
+      
+      // Initialize signature pad
+      const canvas = document.getElementById('signaturePad');
+      const ctx = canvas.getContext('2d');
+      let isDrawing = false;
+      let lastX = 0;
+      let lastY = 0;
+      
+      // Set up signature pad
+      ctx.lineWidth = 2;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#000';
+      
+      canvas.addEventListener('mousedown', startDrawing);
+      canvas.addEventListener('mousemove', draw);
+      canvas.addEventListener('mouseup', stopDrawing);
+      canvas.addEventListener('mouseout', stopDrawing);
+      
+      // Touch events for mobile devices
+      canvas.addEventListener('touchstart', handleTouchStart);
+      canvas.addEventListener('touchmove', handleTouchMove);
+      canvas.addEventListener('touchend', handleTouchEnd);
+      
+      // Clear signature button
+      document.getElementById('clearSignature').addEventListener('click', clearSignature);
+      
+      // Submit button handler
+      document.getElementById('submitDutyBtn').addEventListener('click', function() {
+        // Validate form
+        if (!validateForm()) {
+          return;
+        }
+        
+        // In a real application, this would be an AJAX call to the server
+        const formData = {
+          dutyId: document.getElementById('dutySelect').value,
+          date: document.getElementById('dutyDate').value,
+          timeIn: document.getElementById('timeIn').value,
+          timeOut: document.getElementById('timeOut').value,
+          hours: calculateHours(),
+          taskDescription: document.getElementById('taskDescription').value,
+          signature: document.getElementById('signatureData').value
+        };
+        
+        console.log('Submitting duty log:', formData);
+        
+        // Show success message
+        alert('Duty log submitted successfully! It is now pending approval.');
+        
+        // Reset form
+        resetForm();
+      });
+    });
+    
+    function calculateHours() {
+      const timeIn = document.getElementById('timeIn').value;
+      const timeOut = document.getElementById('timeOut').value;
+      
+      if (!timeIn || !timeOut) {
+        document.getElementById('hoursCalculated').textContent = 'Total hours: 0.00';
+        return 0;
+      }
+      
+      // Calculate hours between time in and time out
+      const [inHours, inMinutes] = timeIn.split(':').map(Number);
+      const [outHours, outMinutes] = timeOut.split(':').map(Number);
+      
+      let totalMinutes = (outHours * 60 + outMinutes) - (inHours * 60 + inMinutes);
+      
+      // Handle overnight duties (if time out is earlier than time in, assume next day)
+      if (totalMinutes < 0) {
+        totalMinutes += 24 * 60; // Add 24 hours
+      }
+      
+      const hours = totalMinutes / 60;
+      document.getElementById('hoursCalculated').textContent = `Total hours: ${hours.toFixed(2)}`;
+      
+      return hours;
+    }
+    
+    function validateForm() {
+      const dutySelect = document.getElementById('dutySelect');
+      const date = document.getElementById('dutyDate');
+      const timeIn = document.getElementById('timeIn');
+      const timeOut = document.getElementById('timeOut');
+      const taskDescription = document.getElementById('taskDescription');
+      const signatureData = document.getElementById('signatureData');
+      
+      if (!dutySelect.value) {
+        alert('Please select a duty.');
+        dutySelect.focus();
+        return false;
+      }
+      
+      if (!date.value) {
+        alert('Please select a date.');
+        date.focus();
+        return false;
+      }
+      
+      if (!timeIn.value) {
+        alert('Please enter time in.');
+        timeIn.focus();
+        return false;
+      }
+      
+      if (!timeOut.value) {
+        alert('Please enter time out.');
+        timeOut.focus();
+        return false;
+      }
+      
+      if (calculateHours() <= 0) {
+        alert('Time out must be after time in.');
+        timeOut.focus();
+        return false;
+      }
+      
+      if (!taskDescription.value) {
+        alert('Please describe the tasks you performed.');
+        taskDescription.focus();
+        return false;
+      }
+      
+      if (!signatureData.value) {
+        alert('Please provide your signature.');
+        return false;
+      }
+      
+      return true;
+    }
+    
+    function resetForm() {
+      document.getElementById('dutySelect').value = '';
+      document.getElementById('timeIn').value = '';
+      document.getElementById('timeOut').value = '';
+      document.getElementById('taskDescription').value = '';
+      document.getElementById('hoursCalculated').textContent = 'Total hours: 0.00';
+      clearSignature();
+    }
+    
+    // Signature pad functions
+    function startDrawing(e) {
+      isDrawing = true;
+      [lastX, lastY] = [e.offsetX, e.offsetY];
+    }
+    
+    function draw(e) {
+      if (!isDrawing) return;
+      
+      const canvas = document.getElementById('signaturePad');
+      const ctx = canvas.getContext('2d');
+      
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(e.offsetX, e.offsetY);
+      ctx.stroke();
+      
+      [lastX, lastY] = [e.offsetX, e.offsetY];
+      
+      // Save signature data
+      document.getElementById('signatureData').value = canvas.toDataURL();
+    }
+    
+    function stopDrawing() {
+      isDrawing = false;
+    }
+    
+    function handleTouchStart(e) {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const mouseEvent = new MouseEvent('mousedown', {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+      });
+      document.getElementById('signaturePad').dispatchEvent(mouseEvent);
+    }
+    
+    function handleTouchMove(e) {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const mouseEvent = new MouseEvent('mousemove', {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+      });
+      document.getElementById('signaturePad').dispatchEvent(mouseEvent);
+    }
+    
+    function handleTouchEnd(e) {
+      e.preventDefault();
+      const mouseEvent = new MouseEvent('mouseup');
+      document.getElementById('signaturePad').dispatchEvent(mouseEvent);
+    }
+    
+    function clearSignature() {
+      const canvas = document.getElementById('signaturePad');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      document.getElementById('signatureData').value = '';
+    }
+    
+    function renderRecentLogs(logs) {
+      const container = document.getElementById('recentLogs');
+      
+      if (logs.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-4">
+            <i class="bi bi-inbox display-4 text-muted"></i>
+            <p class="mt-2">No recent duty logs</p>
+          </div>
+        `;
+        return;
+      }
+      
+      container.innerHTML = '';
+      
+      logs.forEach(log => {
+        const statusClass = `status-${log.status}`;
+        const statusText = log.status.charAt(0).toUpperCase() + log.status.slice(1);
+        
+        const logElement = document.createElement('div');
+        logElement.className = 'duty-card';
+        logElement.innerHTML = `
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <h6 class="card-title">${log.dutyType}</h6>
+              <span class="status-badge ${statusClass}">${statusText}</span>
+            </div>
+            
+            <p class="card-text small">${log.taskDescription}</p>
+            
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="time-badge"><i class="bi bi-calendar"></i> ${log.date}</span>
+              <span class="time-badge"><i class="bi bi-clock"></i> ${log.timeIn} - ${log.timeOut}</span>
+              <span class="time-badge"><i class="bi bi-hourglass-split"></i> ${log.hours}h</span>
+            </div>
+          </div>
+        `;
+        
+        container.appendChild(logElement);
+      });
+    }
+    
+    function updateStats(logs) {
+      const totalHours = logs.reduce((sum, log) => sum + log.hours, 0);
+      const pendingCount = logs.filter(log => log.status === 'pending').length;
+      const completedCount = logs.filter(log => log.status === 'approved').length;
+      
+      document.getElementById('totalHours').textContent = totalHours.toFixed(1);
+      document.getElementById('pendingCount').textContent = pendingCount;
+      document.getElementById('completedCount').textContent = completedCount;
+    }
+  </script>
+
+</body>
+
+</html>
