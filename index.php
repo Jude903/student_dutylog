@@ -48,24 +48,26 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
           <h1 class="sitename">CSDL</h1>
         </a>
 
-        <nav id="navmenu" class="navmenu">
-          <ul>
-            <li><a href="index.php" class="active">Home</a></li>
-            <li><a href="dashboard.php">Dashboard</a></li>
-            <li class="dropdown">
-              <a href="#"></i>Duty Options</a>
-              <ul class="dropdown-menu">
-                  <li><a href="assign-duty.php"></i>Assign Duty</a></li>
-                  <li><a href="approve-duty.php"></i>Approve Duty</a></li>
-                  <li><a href="log-duty.php"></i>Log Duty</a></li>
-                  <li><a href="view-duty.php"></i>View Duty</a></li>
-                  <li><a href="monitor-duty.php"></i>Monitor Duty</a></li>
-              </ul>
-          </li>
-            <li><a href="evaluate-student.php">Evaluate Student</a></li>
-          </ul>
-          <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
-        </nav>
+<nav id="navmenu" class="navmenu">
+  <ul>
+    <li><a href="index.php" class="active">Home</a></li>
+    <li><a href="dashboard.php">Dashboard</a></li>
+    <li class="dropdown">
+      <a href="#">Duty Options</a>
+      <ul class="dropdown-menu">
+        <li><a href="assign-duty.php">Assign Duty</a></li>
+        <li><a href="approve-duty.php">Approve Duty</a></li>
+        <li><a href="log-duty.php">Log Duty</a></li>
+        <li><a href="view-duty.php">View Duty</a></li>
+        <li><a href="monitor-duty.php">Monitor Duty</a></li>
+      </ul>
+    </li>
+    <li><a href="evaluate-student.php">Evaluate Student</a></li>
+    <!-- ✅ Logout Button -->
+    <li><a href="logout.php" class="text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+  </ul>
+  <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+</nav>
       </div>
     </div>
   </header>
