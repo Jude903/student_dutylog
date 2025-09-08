@@ -141,26 +141,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <header id="header" class="header sticky-top">
     <div class="branding d-flex align-items-center">
       <div class="container position-relative d-flex align-items-center justify-content-between">
-        <a href="index.php" class="logo d-flex align-items-center">
+        <?php
+        // Get user role for navigation
+        $userRole = $_SESSION['role'] ?? 'student';
+
+        // Function to check if user has access to a specific page
+        function hasAccess($userRole, $page) {
+            $accessMatrix = [
+                'student' => ['home', 'dashboard', 'log-duty', 'view-duty'],
+                'instructor' => ['home', 'dashboard', 'approve-duty', 'monitor-duty', 'evaluate-student'],
+                'scholarship_officer' => ['home', 'dashboard', 'assign-duty', 'approve-duty', 'monitor-duty', 'evaluate-student'],
+                'superadmin' => ['home', 'dashboard', 'assign-duty', 'approve-duty', 'log-duty', 'view-duty', 'monitor-duty', 'evaluate-student']
+            ];
+
+            return in_array($page, $accessMatrix[$userRole] ?? []);
+        }
+        ?>
+
+        <a href="index_user.php" class="logo d-flex align-items-center">
           <img src="assets/img/CSDL logo.png" alt="">
           <h1 class="sitename">CSDL</h1>
         </a>
 
         <nav id="navmenu" class="navmenu">
           <ul>
-            <li><a href="index.php">Home</a></li>
+            <li><a href="index_user.php">Home</a></li>
             <li><a href="dashboard.php">Dashboard</a></li>
+
+            <?php
+            // Duty Options dropdown - show only accessible options
+            $dutyOptions = [];
+            if (hasAccess($userRole, 'assign-duty')) $dutyOptions[] = ['url' => 'assign-duty.php', 'text' => 'Assign Duty'];
+            if (hasAccess($userRole, 'approve-duty')) $dutyOptions[] = ['url' => 'approve-duty.php', 'text' => 'Approve Duty'];
+            if (hasAccess($userRole, 'log-duty')) $dutyOptions[] = ['url' => 'log-duty.php', 'text' => 'Log Duty'];
+            if (hasAccess($userRole, 'view-duty')) $dutyOptions[] = ['url' => 'view-duty.php', 'text' => 'View Duty'];
+            if (hasAccess($userRole, 'monitor-duty')) $dutyOptions[] = ['url' => 'monitor-duty.php', 'text' => 'Monitor Duty'];
+
+            if (!empty($dutyOptions)):
+            ?>
             <li class="dropdown">
-              <a href="#"></i>Duty Options</a>
+              <a href="#">Duty Options</a>
               <ul class="dropdown-menu">
-                  <li><a href="assign-duty.php"></i>Assign Duty</a></li>
-                  <li><a href="approve-duty.php"></i>Approve Duty</a></li>
-                  <li><a href="log-duty.php"></i>Log Duty</a></li>
-                  <li><a href="view-duty.php"></i>View Duty</a></li>
-                  <li><a href="monitor-duty.php"></i>Monitor Duty</a></li>
+                <?php foreach ($dutyOptions as $option): ?>
+                <li><a href="<?php echo $option['url']; ?>"><?php echo $option['text']; ?></a></li>
+                <?php endforeach; ?>
               </ul>
-          </li>
-            <li><a href="evaluate-student.php" class="active">Evaluate Student</a></li>
+            </li>
+            <?php endif; ?>
+
+            <?php if (hasAccess($userRole, 'evaluate-student')): ?>
+            <li><a href="evaluate-student.php">Evaluate Student</a></li>
+            <?php endif; ?>
+
             <li><a href="logout.php" class="text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
           </ul>
           <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>

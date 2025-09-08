@@ -97,168 +97,8 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
 
   <!-- Main CSS File -->
   <link href="assets/css/main.css" rel="stylesheet">
+  <link href="assets/css/approve-duty.css" rel="stylesheet">
   
-  <style>
-    :root {
-      --primary-color: #2c3e50;
-      --secondary-color: #3498db;
-      --success-color: #27ae60;
-      --warning-color: #f39c12;
-      --danger-color: #e74c3c;
-      --light-color: #f8f9fa;
-      --dark-color: #343a40;
-    }
-    
-    .filter-section {
-      background-color: #f8f9fa;
-      padding: 20px;
-      border-radius: 8px;
-      margin-bottom: 30px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-    }
-    
-    .duty-card {
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      transition: transform 0.3s ease;
-      margin-bottom: 20px;
-      border-left: 4px solid #6c757d;
-      background: white;
-    }
-    
-    .duty-card.pending {
-      border-left-color: var(--warning-color);
-    }
-    
-    .duty-card.approved {
-      border-left-color: var(--success-color);
-    }
-    
-    .duty-card.rejected {
-      border-left-color: var(--danger-color);
-    }
-    
-    .status-badge {
-      padding: 5px 10px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 600;
-    }
-    
-    .status-pending {
-      background-color: #fff3cd;
-      color: #856404;
-    }
-    
-    .status-approved {
-      background-color: #d4edda;
-      color: #155724;
-    }
-    
-    .status-rejected {
-      background-color: #f8d7da;
-      color: #721c24;
-    }
-    
-    .student-info {
-      display: flex;
-      align-items: center;
-      margin-bottom: 15px;
-    }
-    
-    .student-avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background-color: var(--secondary-color);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: bold;
-      margin-right: 10px;
-    }
-    
-    .action-buttons {
-      display: flex;
-      gap: 10px;
-      margin-top: 15px;
-    }
-    
-    .modal-content {
-      border-radius: 10px;
-      border: none;
-      box-shadow: 0 5px 25px rgba(0,0,0,0.15);
-    }
-    
-    .modal-header {
-      background-color: var(--primary-color);
-      color: white;
-      border-top-left-radius: 10px;
-      border-top-right-radius: 10px;
-    }
-    
-    .details-row {
-      margin-bottom: 15px;
-      padding-bottom: 15px;
-      border-bottom: 1px solid #eee;
-    }
-    
-    .time-badge {
-      background-color: #e9ecef;
-      padding: 5px 10px;
-      border-radius: 15px;
-      font-size: 0.85rem;
-    }
-    
-    .remarks-section {
-      background-color: #f8f9fa;
-      padding: 15px;
-      border-radius: 8px;
-      margin-top: 15px;
-    }
-    
-    .btn-approve {
-      background-color: var(--success-color);
-      border-color: var(--success-color);
-    }
-    
-    .btn-reject {
-      background-color: var(--danger-color);
-      border-color: var(--danger-color);
-    }
-    
-    .btn-approve:hover {
-      background-color: #219653;
-      border-color: #219653;
-    }
-    
-    .btn-reject:hover {
-      background-color: #c0392b;
-      border-color: #c0392b;
-    }
-    
-    .stats-card {
-      background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-      color: white;
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 20px;
-      text-align: center;
-    }
-    
-    .stats-number {
-      font-size: 2.5rem;
-      font-weight: 700;
-      margin-bottom: 0;
-    }
-    
-    .stats-label {
-      font-size: 0.9rem;
-      opacity: 0.9;
-    }
-  </style>
 </head>
 
 <body class="index-page">
@@ -266,26 +106,58 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
   <header id="header" class="header sticky-top">
     <div class="branding d-flex align-items-center">
       <div class="container position-relative d-flex align-items-center justify-content-between">
-        <a href="index.php" class="logo d-flex align-items-center">
+        <?php
+        // Get user role for navigation
+        $userRole = $_SESSION['role'] ?? 'student';
+
+        // Function to check if user has access to a specific page
+        function hasAccess($userRole, $page) {
+            $accessMatrix = [
+                'student' => ['home', 'dashboard', 'log-duty', 'view-duty'],
+                'instructor' => ['home', 'dashboard', 'approve-duty', 'monitor-duty', 'evaluate-student'],
+                'scholarship_officer' => ['home', 'dashboard', 'assign-duty', 'approve-duty', 'monitor-duty', 'evaluate-student'],
+                'superadmin' => ['home', 'dashboard', 'assign-duty', 'approve-duty', 'log-duty', 'view-duty', 'monitor-duty', 'evaluate-student']
+            ];
+
+            return in_array($page, $accessMatrix[$userRole] ?? []);
+        }
+        ?>
+
+        <a href="index_user.php" class="logo d-flex align-items-center">
           <img src="assets/img/CSDL logo.png" alt="">
           <h1 class="sitename">CSDL</h1>
         </a>
 
         <nav id="navmenu" class="navmenu">
           <ul>
-            <li><a href="index.php">Home</a></li>
+            <li><a href="index_user.php">Home</a></li>
             <li><a href="dashboard.php">Dashboard</a></li>
+
+            <?php
+            // Duty Options dropdown - show only accessible options
+            $dutyOptions = [];
+            if (hasAccess($userRole, 'assign-duty')) $dutyOptions[] = ['url' => 'assign-duty.php', 'text' => 'Assign Duty'];
+            if (hasAccess($userRole, 'approve-duty')) $dutyOptions[] = ['url' => 'approve-duty.php', 'text' => 'Approve Duty'];
+            if (hasAccess($userRole, 'log-duty')) $dutyOptions[] = ['url' => 'log-duty.php', 'text' => 'Log Duty'];
+            if (hasAccess($userRole, 'view-duty')) $dutyOptions[] = ['url' => 'view-duty.php', 'text' => 'View Duty'];
+            if (hasAccess($userRole, 'monitor-duty')) $dutyOptions[] = ['url' => 'monitor-duty.php', 'text' => 'Monitor Duty'];
+
+            if (!empty($dutyOptions)):
+            ?>
             <li class="dropdown">
-              <a href="#"></i>Duty Options</a>
+              <a href="#">Duty Options</a>
               <ul class="dropdown-menu">
-                  <li><a href="assign-duty.php"></i>Assign Duty</a></li>
-                  <li><a href="approve-duty.php" class="active"></i>Approve Duty</a></li>
-                  <li><a href="log-duty.php"></i>Log Duty</a></li>
-                  <li><a href="view-duty.php"></i>View Duty</a></li>
-                  <li><a href="monitor-duty.php"></i>Monitor Duty</a></li>
+                <?php foreach ($dutyOptions as $option): ?>
+                <li><a href="<?php echo $option['url']; ?>"><?php echo $option['text']; ?></a></li>
+                <?php endforeach; ?>
               </ul>
-          </li>
+            </li>
+            <?php endif; ?>
+
+            <?php if (hasAccess($userRole, 'evaluate-student')): ?>
             <li><a href="evaluate-student.php">Evaluate Student</a></li>
+            <?php endif; ?>
+
             <li><a href="logout.php" class="text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
           </ul>
           <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
