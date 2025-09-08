@@ -1,4 +1,20 @@
 <?php
+session_start(); // Start the session
+
+// Check if the user is not logged in (e.g., by checking a session variable set during login)
+if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+    // Redirect to the login page if not logged in
+    header("Location: login.php");
+    exit;
+}
+
+// Prevent caching of the page
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");
+
+// Rest of your protected page content
+// ...
 require_once 'config/config.php';
 
 // For demonstration, we'll use student ID 7 (from your sample data)
@@ -133,6 +149,7 @@ $progressData = $progressStmt->fetchAll(PDO::FETCH_ASSOC);
               </ul>
           </li>
             <li><a href="evaluate-student.php">Evaluate Student</a></li>
+            <li><a href="logout.php" class="text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
           </ul>
           <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
         </nav>
@@ -433,31 +450,35 @@ $progressData = $progressStmt->fetchAll(PDO::FETCH_ASSOC);
 <?php
 // Helper function to display time elapsed
 function time_elapsed_string($datetime, $full = false) {
-    $now = new DateTime;
-    $ago = new DateTime($datetime);
-    $diff = $now->diff($ago);
+  $now = new DateTime();
+  $ago = new DateTime($datetime);
+  $diff = $now->diff($ago);
 
-    $diff->w = floor($diff->d / 7);
-    $diff->d -= $diff->w * 7;
+  // Build an array of time parts
+  $parts = [];
+  if ($diff->y) $parts['y'] = $diff->y;
+  if ($diff->m) $parts['m'] = $diff->m;
+  if ($diff->d) $parts['d'] = $diff->d;
+  if ($diff->h) $parts['h'] = $diff->h;
+  if ($diff->i) $parts['i'] = $diff->i;
+  if ($diff->s) $parts['s'] = $diff->s;
 
-    $string = array(
-        'y' => 'year',
-        'm' => 'month',
-        'w' => 'week',
-        'd' => 'day',
-        'h' => 'hour',
-        'i' => 'minute',
-        's' => 'second',
-    );
-    foreach ($string as $k => &$v) {
-        if ($diff->$k) {
-            $v = $diff->$k . ' ' . $v . ($diff->$k > 1 ? 's' : '');
-        } else {
-            unset($string[$k]);
-        }
-    }
+  $map = [
+    'y' => 'year',
+    'm' => 'month',
+    'd' => 'day',
+    'h' => 'hour',
+    'i' => 'minute',
+    's' => 'second'
+  ];
 
-    if (!$full) $string = array_slice($string, 0, 1);
-    return $string ? implode(', ', $string) . ' ago' : 'just now';
+  $strings = [];
+  foreach ($parts as $k => $v) {
+    $label = $map[$k];
+    $strings[] = $v . ' ' . $label . ($v > 1 ? 's' : '');
+  }
+
+  if (!$full) $strings = array_slice($strings, 0, 1);
+  return $strings ? implode(', ', $strings) . ' ago' : 'just now';
 }
 ?>

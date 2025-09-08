@@ -1,4 +1,20 @@
 <?php
+session_start(); // Start the session
+
+// Check if the user is not logged in (e.g., by checking a session variable set during login)
+if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+    // Redirect to the login page if not logged in
+    header("Location: login.php");
+    exit;
+}
+
+// Prevent caching of the page
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");
+
+// Rest of your protected page content
+// ...
 require_once 'config/config.php';
 
 // Fetch statistics for the homepage

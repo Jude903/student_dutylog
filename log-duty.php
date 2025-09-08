@@ -1,13 +1,27 @@
 <?php
-require_once 'config/config.php';
-session_start();
+session_start(); // Start the session
 
+// Check if the user is not logged in (e.g., by checking a session variable set during login)
+if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+    // Redirect to the login page if not logged in
+    header("Location: login.php");
+    exit;
+}
+
+// Prevent caching of the page
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");
+
+// Rest of your protected page content
+// ...
+require_once 'config/config.php';
 // Check if user is logged in as a student
-if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'student') {
- 
-    $studentId = 7; // Default student ID for testing
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'student') {
+  // Not a logged-in student; use default/test student id
+  $studentId = 7; // Default student ID for testing
 } else {
-    $studentId = $_SESSION['user_id'];
+  $studentId = $_SESSION['user_id'];
 }
 
 // Fetch student's duties
@@ -269,6 +283,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               </ul>
           </li>
             <li><a href="evaluate-student.php">Evaluate Student</a></li>
+            <li><a href="logout.php" class="text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
           </ul>
           <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
         </nav>

@@ -1,5 +1,21 @@
 
 <?php
+session_start(); // Start the session
+
+// Check if the user is not logged in (e.g., by checking a session variable set during login)
+if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+    // Redirect to the login page if not logged in
+    header("Location: login.php");
+    exit;
+}
+
+// Prevent caching of the page
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");
+
+// Rest of your protected page content
+// ...
 require_once 'config/config.php';
 // session_start();
 
@@ -355,6 +371,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_duty_details' && isset($_
               </ul>
           </li>
             <li><a href="evaluate-student.php">Evaluate Student</a></li>
+            <li><a href="logout.php" class="text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
           </ul>
           <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
         </nav>
