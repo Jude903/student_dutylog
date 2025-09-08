@@ -16,7 +16,6 @@ header("Pragma: no-cache");
 // Rest of your protected page content
 // ...
 require_once 'config/config.php';
-session_start();
 
 // Check if user is logged in as an instructor
 // if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'instructor') {
@@ -112,13 +111,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <head>
   <meta charset="utf-8">
-  <meta content="width=device-width, initial-scale="1.0" name="viewport">
+  <meta content="width=device-width, initial-scale="1.0 name="viewport">
   <meta name="description" content="PHINMA Cagayan de Oro College Student Evaluation System">
   <meta name="keywords" content="PHINMA COC, student evaluation, duty performance, college management, Cagayan de Oro">
 
   <!-- Favicons -->
-  <link href="assets/img/favicon.png" rel="icon">
-  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+  <link href="assets/img/CSDL logo.png" rel="icon">
 
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com" rel="preconnect">

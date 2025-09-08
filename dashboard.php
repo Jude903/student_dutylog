@@ -106,9 +106,7 @@ $progressData = $progressStmt->fetchAll(PDO::FETCH_ASSOC);
   <meta name="keywords" content="duty, log, tracking, management">
 
   <!-- Favicons -->
-  <link href="assets/img/favicon.png" rel="icon">
-  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
-
+  <link href="assets/img/CSDL logo.png" rel="icon">
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
