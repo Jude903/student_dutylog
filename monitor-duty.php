@@ -1,3 +1,90 @@
+
+<?php
+require_once 'config/config.php';
+// session_start();
+
+// Check if user is logged in (for monitoring, typically supervisors/admins)
+// if (!isset($_SESSION['user_id'])) {
+//     header("Location: login.php");
+//     exit();
+// }
+
+// Fetch all duties with student information
+$dutiesQuery = "
+    SELECT d.*, u.username as student_name, u2.username as assigned_by_name 
+    FROM duties d 
+    JOIN users u ON d.student_id = u.id 
+    JOIN users u2 ON d.assigned_by = u2.id 
+    ORDER BY d.created_at DESC
+";
+$dutiesStmt = $pdo->query($dutiesQuery);
+$duties = $dutiesStmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch students for filter dropdown
+$studentsQuery = "SELECT id, username as name FROM users WHERE role = 'student'";
+$studentsStmt = $pdo->query($studentsQuery);
+$students = $studentsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Get duty types for filter
+$dutyTypesQuery = "SELECT DISTINCT duty_type FROM duties ORDER BY duty_type";
+$dutyTypesStmt = $pdo->query($dutyTypesQuery);
+$dutyTypes = $dutyTypesStmt->fetchAll(PDO::FETCH_COLUMN);
+
+// Function to get duty with entries and completed hours
+function getDutyWithEntries($pdo, $dutyId) {
+    $query = "
+        SELECT d.*, u.username as student_name, u2.username as assigned_by_name,
+               COALESCE(SUM(CASE WHEN de.status = 'approved' THEN de.hours ELSE 0 END), 0) as completed_hours
+        FROM duties d 
+        JOIN users u ON d.student_id = u.id 
+        JOIN users u2 ON d.assigned_by = u2.id 
+        LEFT JOIN duty_entries de ON d.id = de.duty_id 
+        WHERE d.id = :duty_id
+        GROUP BY d.id
+    ";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute(['duty_id' => $dutyId]);
+    $duty = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($duty) {
+        $entriesQuery = "SELECT * FROM duty_entries WHERE duty_id = :duty_id ORDER BY date DESC";
+        $entriesStmt = $pdo->prepare($entriesQuery);
+        $entriesStmt->execute(['duty_id' => $dutyId]);
+        $duty['entries'] = $entriesStmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
+    return $duty;
+}
+
+// Calculate statistics - FIXED: Added table aliases to resolve ambiguous column references
+$statsQuery = "
+    SELECT 
+        COUNT(DISTINCT d.student_id) as total_students,
+        SUM(CASE WHEN d.status = 'completed' THEN 1 ELSE 0 END) as completed_duties,
+        SUM(CASE WHEN d.status = 'in_progress' THEN 1 ELSE 0 END) as in_progress_duties,
+        COALESCE(SUM(CASE WHEN de.status = 'approved' THEN de.hours ELSE 0 END), 0) as total_hours
+    FROM duties d
+    LEFT JOIN duty_entries de ON d.id = de.duty_id
+";
+$statsStmt = $pdo->query($statsQuery);
+$stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
+
+// Handle AJAX request for duty details
+if (isset($_GET['action']) && $_GET['action'] === 'get_duty_details' && isset($_GET['duty_id'])) {
+    $dutyId = $_GET['duty_id'];
+    $duty = getDutyWithEntries($pdo, $dutyId);
+    
+    if ($duty) {
+        header('Content-Type: application/json');
+        echo json_encode($duty);
+        exit();
+    } else {
+        http_response_code(404);
+        echo json_encode(['error' => 'Duty not found']);
+        exit();
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -77,6 +164,7 @@
       margin-bottom: 20px;
       border-left: 4px solid var(--secondary-color);
       transition: transform 0.3s ease;
+      cursor: pointer;
     }
     
     .duty-card:hover {
@@ -218,6 +306,22 @@
       color: #6c757d;
     }
     
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #3498db;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
     @media (max-width: 768px) {
       .overview-grid {
         grid-template-columns: 1fr;
@@ -231,26 +335,26 @@
   <header id="header" class="header sticky-top">
     <div class="branding d-flex align-items-center">
       <div class="container position-relative d-flex align-items-center justify-content-between">
-        <a href="index.html" class="logo d-flex align-items-center">
+        <a href="index.php" class="logo d-flex align-items-center">
           <img src="assets/img/CSDL logo.png" alt="">
           <h1 class="sitename">CSDL</h1>
         </a>
 
         <nav id="navmenu" class="navmenu">
           <ul>
-            <li><a href="index.html">Home</a></li>
-            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="index.php">Home</a></li>
+            <li><a href="dashboard.php">Dashboard</a></li>
             <li class="dropdown">
               <a href="#"></i>Duty Options</a>
               <ul class="dropdown-menu">
-                  <li><a href="assign-duty.html"></i>Assign Duty</a></li>
-                  <li><a href="approve-duty.html"></i>Approve Duty</a></li>
-                  <li><a href="log-duty.html"></i>Log Duty</a></li>
-                  <li><a href="view-duty.html"></i>View Duty</a></li>
-                  <li><a href="monitor-duty.html"></i>Monitor Duty</a></li>
+                  <li><a href="assign-duty.php"></i>Assign Duty</a></li>
+                  <li><a href="approve-duty.php"></i>Approve Duty</a></li>
+                  <li><a href="log-duty.php"></i>Log Duty</a></li>
+                  <li><a href="view-duty.php"></i>View Duty</a></li>
+                  <li><a href="monitor-duty.php" class="active"></i>Monitor Duty</a></li>
               </ul>
           </li>
-            <li><a href="evaluate-student.html">Evaluate Student</a></li>
+            <li><a href="evaluate-student.php">Evaluate Student</a></li>
           </ul>
           <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
         </nav>
@@ -267,7 +371,7 @@
         <h1 class="mb-2 mb-lg-0">Monitor Student Duties</h1>
         <nav class="breadcrumbs">
           <ol>
-            <li><a href="index.html">Home</a></li>
+            <li><a href="index.php">Home</a></li>
             <li class="current">Monitor Duties</li>
           </ol>
         </nav>
@@ -284,7 +388,7 @@
             <div class="overview-icon text-primary">
               <i class="bi bi-people-fill"></i>
             </div>
-            <div class="overview-number" id="totalStudents">0</div>
+            <div class="overview-number" id="totalStudents"><?php echo $stats['total_students']; ?></div>
             <div class="overview-label">Total Students</div>
           </div>
           
@@ -292,7 +396,7 @@
             <div class="overview-icon text-success">
               <i class="bi bi-check-circle-fill"></i>
             </div>
-            <div class="overview-number" id="completedDuties">0</div>
+            <div class="overview-number" id="completedDuties"><?php echo $stats['completed_duties']; ?></div>
             <div class="overview-label">Completed Duties</div>
           </div>
           
@@ -300,7 +404,7 @@
             <div class="overview-icon text-warning">
               <i class="bi bi-clock-history"></i>
             </div>
-            <div class="overview-number" id="inProgressDuties">0</div>
+            <div class="overview-number" id="inProgressDuties"><?php echo $stats['in_progress_duties']; ?></div>
             <div class="overview-label">In Progress</div>
           </div>
           
@@ -308,7 +412,7 @@
             <div class="overview-icon text-info">
               <i class="bi bi-clock-fill"></i>
             </div>
-            <div class="overview-number" id="totalHours">0</div>
+            <div class="overview-number" id="totalHours"><?php echo number_format($stats['total_hours'], 1); ?></div>
             <div class="overview-label">Total Hours</div>
           </div>
         </div>
@@ -332,9 +436,9 @@
                 <label for="studentFilter">Student</label>
                 <select class="form-control" id="studentFilter">
                   <option value="all">All Students</option>
-                  <option value="7">Student 1</option>
-                  <option value="8">Student 2</option>
-                  <option value="9">Student 3</option>
+                  <?php foreach ($students as $student): ?>
+                  <option value="<?php echo $student['id']; ?>"><?php echo htmlspecialchars($student['name']); ?></option>
+                  <?php endforeach; ?>
                 </select>
               </div>
             </div>
@@ -343,9 +447,9 @@
                 <label for="dutyTypeFilter">Duty Type</label>
                 <select class="form-control" id="dutyTypeFilter">
                   <option value="all">All Types</option>
-                  <option value="ID Station">ID Station</option>
-                  <option value="Library Assistant">Library Assistant</option>
-                  <option value="Office Assistant">Office Assistant</option>
+                  <?php foreach ($dutyTypes as $dutyType): ?>
+                  <option value="<?php echo htmlspecialchars($dutyType); ?>"><?php echo htmlspecialchars($dutyType); ?></option>
+                  <?php endforeach; ?>
                 </select>
               </div>
             </div>
@@ -360,12 +464,60 @@
             <div class="monitor-section">
               <h3 class="section-title">Student Duties Overview</h3>
               <div id="dutiesContainer">
-                <!-- Duties will be populated here -->
+                <?php if (empty($duties)): ?>
                 <div class="text-center py-5">
                   <i class="bi bi-inbox display-4 text-muted"></i>
                   <p class="mt-2">No duties found</p>
                   <p class="text-muted">Try adjusting your filters to see more results</p>
                 </div>
+                <?php else: ?>
+                  <?php foreach ($duties as $duty): 
+                    $statusClass = 'status-' . $duty['status'];
+                    $statusText = ucfirst(str_replace('_', ' ', $duty['status']));
+                    $completedHours = getDutyWithEntries($pdo, $duty['id'])['completed_hours'] ?? 0;
+                    $progressPercent = $duty['required_hours'] > 0 ? 
+                                     min(100, ($completedHours / $duty['required_hours']) * 100) : 0;
+                    $entriesCount = count(getDutyWithEntries($pdo, $duty['id'])['entries'] ?? []);
+                  ?>
+                  <div class="duty-card" data-duty-id="<?php echo $duty['id']; ?>">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                      <div>
+                        <h5 class="card-title"><?php echo htmlspecialchars($duty['duty_type']); ?></h5>
+                        <p class="card-subtitle text-muted">Assigned on: <?php echo date('M j, Y', strtotime($duty['created_at'])); ?></p>
+                      </div>
+                      <span class="status-badge <?php echo $statusClass; ?>"><?php echo $statusText; ?></span>
+                    </div>
+                    
+                    <div class="student-info d-flex align-items-center mb-3">
+                      <div class="student-avatar"><?php echo substr($duty['student_name'], 0, 1); ?></div>
+                      <div>
+                        <h6 class="mb-0"><?php echo htmlspecialchars($duty['student_name']); ?></h6>
+                        <small class="text-muted">Assigned by: <?php echo htmlspecialchars($duty['assigned_by_name']); ?></small>
+                      </div>
+                    </div>
+                    
+                    <div class="duty-progress">
+                      <div class="d-flex justify-content-between">
+                        <span>Progress: <?php echo $completedHours; ?> / <?php echo $duty['required_hours']; ?> hours</span>
+                        <span><?php echo min(100, round($progressPercent)); ?>%</span>
+                      </div>
+                      <div class="progress">
+                        <div class="progress-bar" role="progressbar" style="width: <?php echo $progressPercent; ?>%" 
+                          aria-valuenow="<?php echo $progressPercent; ?>" aria-valuemin="0" aria-valuemax="100"></div>
+                      </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                      <span class="time-badge"><i class="bi bi-clock-history"></i> 
+                        <?php echo $entriesCount . ' entr' . ($entriesCount === 1 ? 'y' : 'ies'); ?>
+                      </span>
+                      <button class="btn btn-outline-primary btn-sm view-details-btn" data-duty-id="<?php echo $duty['id']; ?>">
+                        <i class="bi bi-graph-up"></i> Monitor
+                      </button>
+                    </div>
+                  </div>
+                  <?php endforeach; ?>
+                <?php endif; ?>
               </div>
             </div>
           </div>
@@ -374,7 +526,6 @@
             <div class="monitor-section">
               <h3 class="section-title">Monitoring Details</h3>
               <div class="monitor-details" id="monitorDetails">
-                <!-- Monitoring details will be populated here -->
                 <div class="text-center py-5">
                   <i class="bi bi-graph-up display-4 text-muted"></i>
                   <p class="mt-2">Select a duty to view monitoring details</p>
@@ -393,7 +544,7 @@
     <div class="container footer-top">
       <div class="row gy-4">
         <div class="col-lg-5 col-md-12 footer-about">
-          <a href="index.html" class="logo d-flex align-items-center">
+          <a href="index.php" class="logo d-flex align-items-center">
             <span class="sitename">Student Duty Log</span>
           </a>
           <p>Empowering PHINMA Cagayan de Oro College with innovative student duty management solutions. Streamlining workflows, enhancing accountability, and fostering academic excellence through technology tailored for Filipino students.</p>
@@ -408,8 +559,8 @@
         <div class="col-lg-2 col-6 footer-links">
           <h4>Quick Links</h4>
           <ul>
-            <li><a href="#">Home</a></li>
-            <li><a href="#">Dashboard</a></li>
+            <li><a href="index.php">Home</a></li>
+            <li><a href="dashboard.php">Dashboard</a></li>
             <li><a href="#">Student Portal</a></li>
             <li><a href="#">Help Center</a></li>
             <li><a href="#">Contact Support</a></li>
@@ -467,200 +618,34 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      // Sample data based on your database structure
-      const duties = [
-        {
-          id: 1,
-          student_id: 7,
-          student_name: "Student 1",
-          duty_type: "ID Station",
-          required_hours: 90,
-          completed_hours: 8.00, // From duty_entries table
-          assigned_by: "Officer 1",
-          status: "assigned",
-          created_at: "2025-09-04",
-          entries: [
-            {
-              id: 1,
-              hours: 8.00,
-              task_description: "I'm serving New students to get their ID from 8am to 5pm",
-              date: "2025-09-03",
-              status: "approved",
-              approval_date: "2025-09-04T14:28:51",
-              created_at: "2025-09-04T13:34:42"
-            }
-          ]
-        }
-      ];
-
-      // Additional sample data for demonstration
-      const additionalDuties = [
-        {
-          id: 2,
-          student_id: 8,
-          student_name: "Student 2",
-          duty_type: "Library Assistant",
-          required_hours: 60,
-          completed_hours: 15.50,
-          assigned_by: "Officer 1",
-          status: "in_progress",
-          created_at: "2025-09-03",
-          entries: [
-            {
-              id: 2,
-              hours: 4.50,
-              task_description: "Organized books in the science section",
-              date: "2025-09-02",
-              status: "approved",
-              approval_date: "2025-09-03T10:15:22",
-              created_at: "2025-09-02T17:20:35"
-            },
-            {
-              id: 3,
-              hours: 6.00,
-              task_description: "Assisted students with finding reference materials",
-              date: "2025-09-03",
-              status: "approved",
-              approval_date: "2025-09-04T09:30:15",
-              created_at: "2025-09-03T14:22:10"
-            },
-            {
-              id: 4,
-              hours: 5.00,
-              task_description: "Helped with inventory management",
-              date: "2025-09-04",
-              status: "pending",
-              approval_date: null,
-              created_at: "2025-09-04T11:45:30"
-            }
-          ]
-        },
-        {
-          id: 3,
-          student_id: 9,
-          student_name: "Student 3",
-          duty_type: "Office Assistant",
-          required_hours: 75,
-          completed_hours: 75.00,
-          assigned_by: "Officer 2",
-          status: "completed",
-          created_at: "2025-08-25",
-          entries: [
-            {
-              id: 5,
-              hours: 8.00,
-              task_description: "Filed documents and answered phone calls",
-              date: "2025-08-25",
-              status: "approved",
-              approval_date: "2025-08-26T14:22:10",
-              created_at: "2025-08-25T16:45:30"
-            },
-            {
-              id: 6,
-              hours: 7.00,
-              task_description: "Assisted with administrative tasks",
-              date: "2025-08-28",
-              status: "approved",
-              approval_date: "2025-08-29T11:30:15",
-              created_at: "2025-08-28T13:20:25"
-            }
-          ]
-        }
-      ];
-
-      // Combine all duties
-      const allDuties = [...duties, ...additionalDuties];
-      
-      // Render duties and update stats
-      renderDuties(allDuties);
-      updateStats(allDuties);
-      
       // Filter functionality
       document.getElementById('applyFilters').addEventListener('click', function() {
         const statusFilter = document.getElementById('statusFilter').value;
         const studentFilter = document.getElementById('studentFilter').value;
         const dutyTypeFilter = document.getElementById('dutyTypeFilter').value;
         
-        let filteredDuties = allDuties;
+        const dutyCards = document.querySelectorAll('.duty-card');
         
-        if (statusFilter !== 'all') {
-          filteredDuties = filteredDuties.filter(duty => duty.status === statusFilter);
-        }
-        
-        if (studentFilter !== 'all') {
-          filteredDuties = filteredDuties.filter(duty => duty.student_id.toString() === studentFilter);
-        }
-        
-        if (dutyTypeFilter !== 'all') {
-          filteredDuties = filteredDuties.filter(duty => duty.duty_type === dutyTypeFilter);
-        }
-        
-        renderDuties(filteredDuties);
-      });
-    });
-    
-    function renderDuties(duties) {
-      const container = document.getElementById('dutiesContainer');
-      
-      if (duties.length === 0) {
-        container.innerHTML = `
-          <div class="text-center py-5">
-            <i class="bi bi-inbox display-4 text-muted"></i>
-            <p class="mt-2">No duties found</p>
-            <p class="text-muted">Try adjusting your filters to see more results</p>
-          </div>
-        `;
-        return;
-      }
-      
-      container.innerHTML = '';
-      
-      duties.forEach(duty => {
-        const statusClass = `status-${duty.status}`;
-        const statusText = duty.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
-        const progressPercent = (duty.completed_hours / duty.required_hours) * 100;
-        
-        const dutyElement = document.createElement('div');
-        dutyElement.className = 'duty-card';
-        dutyElement.dataset.dutyId = duty.id;
-        
-        dutyElement.innerHTML = `
-          <div class="d-flex justify-content-between align-items-start mb-3">
-            <div>
-              <h5 class="card-title">${duty.duty_type}</h5>
-              <p class="card-subtitle text-muted">Assigned on: ${formatDate(duty.created_at)}</p>
-            </div>
-            <span class="status-badge ${statusClass}">${statusText}</span>
-          </div>
+        dutyCards.forEach(card => {
+          let showCard = true;
+          const status = card.querySelector('.status-badge').textContent.toLowerCase().replace(' ', '_');
+          const studentId = card.getAttribute('data-duty-id');
+          const dutyType = card.querySelector('.card-title').textContent;
           
-          <div class="student-info d-flex align-items-center mb-3">
-            <div class="student-avatar">${duty.student_name.charAt(0)}</div>
-            <div>
-              <h6 class="mb-0">${duty.student_name}</h6>
-              <small class="text-muted">Assigned by: ${duty.assigned_by}</small>
-            </div>
-          </div>
+          if (statusFilter !== 'all' && status !== statusFilter) {
+            showCard = false;
+          }
           
-          <div class="duty-progress">
-            <div class="d-flex justify-content-between">
-              <span>Progress: ${duty.completed_hours} / ${duty.required_hours} hours</span>
-              <span>${Math.min(100, Math.round(progressPercent))}%</span>
-            </div>
-            <div class="progress">
-              <div class="progress-bar" role="progressbar" style="width: ${progressPercent}%" 
-                aria-valuenow="${progressPercent}" aria-valuemin="0" aria-valuemax="100"></div>
-            </div>
-          </div>
+          if (studentFilter !== 'all' && !studentId.includes(studentFilter)) {
+            showCard = false;
+          }
           
-          <div class="d-flex justify-content-between align-items-center mt-3">
-            <span class="time-badge"><i class="bi bi-clock-history"></i> ${duty.entries.length} entries</span>
-            <button class="btn btn-outline-primary btn-sm view-details-btn" data-duty-id="${duty.id}">
-              <i class="bi bi-graph-up"></i> Monitor
-            </button>
-          </div>
-        `;
-        
-        container.appendChild(dutyElement);
+          if (dutyTypeFilter !== 'all' && dutyType !== dutyTypeFilter) {
+            showCard = false;
+          }
+          
+          card.style.display = showCard ? 'block' : 'none';
+        });
       });
       
       // Add event listeners to view details buttons
@@ -670,18 +655,53 @@
           showMonitorDetails(dutyId);
         });
       });
-    }
+      
+      // Add event listeners to duty cards
+      document.querySelectorAll('.duty-card').forEach(card => {
+        card.addEventListener('click', function(e) {
+          if (!e.target.closest('.view-details-btn')) {
+            const dutyId = this.getAttribute('data-duty-id');
+            showMonitorDetails(dutyId);
+          }
+        });
+      });
+    });
     
     function showMonitorDetails(dutyId) {
-      // In a real application, this would fetch the specific duty from the server
-      // For now, we'll use the sample data
-      const duty = duties.find(d => d.id == dutyId);
-      if (!duty) return;
+      const detailsContainer = document.getElementById('monitorDetails');
+      detailsContainer.innerHTML = `
+        <div class="text-center py-4">
+          <div class="loading-spinner"></div>
+          <p class="mt-2">Loading monitoring details...</p>
+        </div>
+      `;
       
+      // Fetch duty details via AJAX
+      fetch(`monitor-duty.php?action=get_duty_details&duty_id=${dutyId}`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        })
+        .then(duty => {
+          renderMonitorDetails(duty);
+        })
+        .catch(error => {
+          detailsContainer.innerHTML = `
+            <div class="alert alert-danger">
+              <i class="bi bi-exclamation-triangle"></i> Error loading monitoring details: ${error.message}
+            </div>
+          `;
+        });
+    }
+    
+    function renderMonitorDetails(duty) {
       const detailsContainer = document.getElementById('monitorDetails');
       const statusClass = `status-${duty.status}`;
       const statusText = duty.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
-      const progressPercent = (duty.completed_hours / duty.required_hours) * 100;
+      const progressPercent = duty.required_hours > 0 ? 
+                           Math.min(100, (duty.completed_hours / duty.required_hours) * 100) : 0;
       
       // Calculate entry statistics
       const approvedEntries = duty.entries.filter(entry => entry.status === 'approved').length;
@@ -689,31 +709,33 @@
       const rejectedEntries = duty.entries.filter(entry => entry.status === 'rejected').length;
       
       let entriesHTML = '';
-      duty.entries.forEach(entry => {
-        const entryStatusClass = `status-${entry.status}`;
-        const entryStatusText = entry.status.charAt(0).toUpperCase() + entry.status.slice(1);
-        
-        entriesHTML += `
-          <div class="detail-item">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-              <h6 class="mb-0">${formatDate(entry.date)}</h6>
-              <span class="entry-status ${entryStatusClass}">${entryStatusText}</span>
-            </div>
-            <p class="mb-1">${entry.task_description}</p>
-            <div class="d-flex justify-content-between">
-              <span class="time-badge"><i class="bi bi-clock"></i> ${entry.hours} hours</span>
-              ${entry.approval_date ? 
-                `<small class="text-muted">Approved: ${formatDateTime(entry.approval_date)}</small>` : 
-                '<small class="text-muted">Pending approval</small>'
+      if (duty.entries && duty.entries.length > 0) {
+        duty.entries.forEach(entry => {
+          const entryStatusClass = `status-${entry.status}`;
+          const entryStatusText = entry.status.charAt(0).toUpperCase() + entry.status.slice(1);
+          const approvalDate = entry.approval_date ? new Date(entry.approval_date).toLocaleDateString() : 'Pending approval';
+          
+          entriesHTML += `
+            <div class="detail-item">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <h6 class="mb-0">${entry.date}</h6>
+                <span class="entry-status ${entryStatusClass}">${entryStatusText}</span>
+              </div>
+              <p class="mb-1">${entry.task_description}</p>
+              <div class="d-flex justify-content-between">
+                <span class="time-badge"><i class="bi bi-clock"></i> ${entry.hours} hours</span>
+                <small class="text-muted">${approvalDate}</small>
+              </div>
+              ${entry.instructor_feedback ? 
+                `<div class="mt-2 p-2 bg-light rounded"><small><strong>Feedback:</strong> ${entry.instructor_feedback}</small></div>` : 
+                ''
               }
             </div>
-            ${entry.instructor_feedback ? 
-              `<div class="mt-2 p-2 bg-light rounded"><small><strong>Feedback:</strong> ${entry.instructor_feedback}</small></div>` : 
-              ''
-            }
-          </div>
-        `;
-      });
+          `;
+        });
+      } else {
+        entriesHTML = '<p class="text-muted">No duty entries yet.</p>';
+      }
       
       detailsContainer.innerHTML = `
         <div class="student-info-card">
@@ -772,37 +794,9 @@
         
         <div class="duty-entries">
           <h5 class="mb-3">Duty Entries</h5>
-          ${entriesHTML || '<p class="text-muted">No duty entries yet.</p>'}
+          ${entriesHTML}
         </div>
       `;
-    }
-    
-    function updateStats(duties) {
-      const totalStudents = new Set(duties.map(duty => duty.student_id)).size;
-      const completedDuties = duties.filter(duty => duty.status === 'completed').length;
-      const inProgressDuties = duties.filter(duty => duty.status === 'in_progress').length;
-      const totalHours = duties.reduce((sum, duty) => sum + duty.completed_hours, 0);
-      
-      document.getElementById('totalStudents').textContent = totalStudents;
-      document.getElementById('completedDuties').textContent = completedDuties;
-      document.getElementById('inProgressDuties').textContent = inProgressDuties;
-      document.getElementById('totalHours').textContent = totalHours.toFixed(1);
-    }
-    
-    function formatDate(dateString) {
-      const options = { year: 'numeric', month: 'short', day: 'numeric' };
-      return new Date(dateString).toLocaleDateString(undefined, options);
-    }
-    
-    function formatDateTime(dateTimeString) {
-      const options = { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      };
-      return new Date(dateTimeString).toLocaleDateString(undefined, options);
     }
   </script>
 

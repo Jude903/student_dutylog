@@ -1,3 +1,89 @@
+<?php
+require_once 'config/config.php';
+session_start();
+
+// Check if user is logged in as a student
+if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'student') {
+ 
+    $studentId = 7; // Default student ID for testing
+} else {
+    $studentId = $_SESSION['user_id'];
+}
+
+// Fetch student's duties
+$dutiesQuery = "SELECT id, duty_type, required_hours FROM duties WHERE student_id = :student_id AND status != 'completed'";
+$dutiesStmt = $pdo->prepare($dutiesQuery);
+$dutiesStmt->execute(['student_id' => $studentId]);
+$duties = $dutiesStmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch student's recent duty logs
+$logsQuery = "
+    SELECT de.*, d.duty_type 
+    FROM duty_entries de 
+    JOIN duties d ON de.duty_id = d.id 
+    WHERE de.student_id = :student_id 
+    ORDER BY de.created_at DESC 
+    LIMIT 5
+";
+$logsStmt = $pdo->prepare($logsQuery);
+$logsStmt->execute(['student_id' => $studentId]);
+$recentLogs = $logsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Calculate statistics
+$statsQuery = "
+    SELECT 
+        COALESCE(SUM(de.hours), 0) as total_hours,
+        SUM(CASE WHEN de.status = 'pending' THEN 1 ELSE 0 END) as pending_count,
+        SUM(CASE WHEN de.status = 'approved' THEN 1 ELSE 0 END) as completed_count
+    FROM duty_entries de 
+    WHERE de.student_id = :student_id
+";
+$statsStmt = $pdo->prepare($statsQuery);
+$statsStmt->execute(['student_id' => $studentId]);
+$stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
+
+// Handle form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $dutyId = $_POST['duty_id'];
+    $date = $_POST['date'];
+    $timeIn = $_POST['time_in'];
+    $timeOut = $_POST['time_out'];
+    $hours = $_POST['hours'];
+    $taskDescription = $_POST['task_description'];
+    $signatureData = $_POST['signature_data'];
+    
+    // Convert base64 signature to binary
+    if ($signatureData) {
+        $signatureData = str_replace('data:image/png;base64,', '', $signatureData);
+        $signatureData = str_replace(' ', '+', $signatureData);
+        $signatureBinary = base64_decode($signatureData);
+    } else {
+        $signatureBinary = null;
+    }
+    
+    try {
+        $insertQuery = "INSERT INTO duty_entries (duty_id, student_id, hours, task_description, date, status, signature_data) 
+                       VALUES (:duty_id, :student_id, :hours, :task_description, :date, 'pending', :signature_data)";
+        $stmt = $pdo->prepare($insertQuery);
+        $stmt->execute([
+            'duty_id' => $dutyId,
+            'student_id' => $studentId,
+            'hours' => $hours,
+            'task_description' => $taskDescription,
+            'date' => $date,
+            'signature_data' => $signatureBinary
+        ]);
+        
+        $successMessage = "Duty log submitted successfully! It is now pending approval.";
+        
+        // Refresh page to show updated data
+        header("Location: log-duty.php?success=" . urlencode($successMessage));
+        exit();
+    } catch (PDOException $e) {
+        $errorMessage = "Error submitting duty log: " . $e->getMessage();
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -163,26 +249,26 @@
   <header id="header" class="header sticky-top">
     <div class="branding d-flex align-items-center">
       <div class="container position-relative d-flex align-items-center justify-content-between">
-        <a href="index.html" class="logo d-flex align-items-center">
+        <a href="index.php" class="logo d-flex align-items-center">
           <img src="assets/img/CSDL logo.png" alt="">
           <h1 class="sitename">CSDL</h1>
         </a>
 
         <nav id="navmenu" class="navmenu">
           <ul>
-            <li><a href="index.html">Home</a></li>
-            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="index.php">Home</a></li>
+            <li><a href="dashboard.php">Dashboard</a></li>
             <li class="dropdown">
               <a href="#"></i>Duty Options</a>
               <ul class="dropdown-menu">
-                  <li><a href="assign-duty.html"></i>Assign Duty</a></li>
-                  <li><a href="approve-duty.html"></i>Approve Duty</a></li>
-                  <li><a href="log-duty.html"></i>Log Duty</a></li>
-                  <li><a href="view-duty.html"></i>View Duty</a></li>
-                  <li><a href="monitor-duty.html"></i>Monitor Duty</a></li>
+                  <li><a href="assign-duty.php"></i>Assign Duty</a></li>
+                  <li><a href="approve-duty.php"></i>Approve Duty</a></li>
+                  <li><a href="log-duty.php" class="active"></i>Log Duty</a></li>
+                  <li><a href="view-duty.php"></i>View Duty</a></li>
+                  <li><a href="monitor-duty.php"></i>Monitor Duty</a></li>
               </ul>
           </li>
-            <li><a href="evaluate-student.html">Evaluate Student</a></li>
+            <li><a href="evaluate-student.php">Evaluate Student</a></li>
           </ul>
           <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
         </nav>
@@ -199,7 +285,7 @@
         <h1 class="mb-2 mb-lg-0">Log Duty Hours</h1>
         <nav class="breadcrumbs">
           <ol>
-            <li><a href="index.html">Home</a></li>
+            <li><a href="index.php">Home</a></li>
             <li class="current">Log Duty</li>
           </ol>
         </nav>
@@ -210,23 +296,37 @@
     <section id="log" class="log section">
       <div class="container" data-aos="fade-up" data-aos-delay="100">
         
+        <?php if (isset($_GET['success'])): ?>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+          <?php echo htmlspecialchars($_GET['success']); ?>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <?php endif; ?>
+        
+        <?php if (isset($errorMessage)): ?>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          <?php echo $errorMessage; ?>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <?php endif; ?>
+        
         <!-- Stats Overview -->
         <div class="row mb-4">
           <div class="col-md-4">
             <div class="stats-card">
-              <p class="stats-number" id="totalHours">0</p>
+              <p class="stats-number" id="totalHours"><?php echo number_format($stats['total_hours'], 1); ?></p>
               <p class="stats-label">Total Hours Logged</p>
             </div>
           </div>
           <div class="col-md-4">
             <div class="stats-card">
-              <p class="stats-number" id="pendingCount">0</p>
+              <p class="stats-number" id="pendingCount"><?php echo $stats['pending_count']; ?></p>
               <p class="stats-label">Pending Approval</p>
             </div>
           </div>
           <div class="col-md-4">
             <div class="stats-card">
-              <p class="stats-number" id="completedCount">0</p>
+              <p class="stats-number" id="completedCount"><?php echo $stats['completed_count']; ?></p>
               <p class="stats-label">Completed Duties</p>
             </div>
           </div>
@@ -237,73 +337,78 @@
             <div class="log-section">
               <h3 class="section-title">Duty Information</h3>
               
-              <div class="form-section">
-                <div class="row">
-                  <div class="col-md-6">
-                    <div class="form-group mb-3">
-                      <label for="dutySelect" class="form-label">Select Duty</label>
-                      <select class="form-control" id="dutySelect">
-                        <option value="">-- Select Duty --</option>
-                        <option value="1">ID Station (90 hours required)</option>
-                        <option value="2">Library Assistant (60 hours required)</option>
-                        <option value="3">Office Assistant (75 hours required)</option>
-                      </select>
+              <form method="POST" action="log-duty.php" id="dutyForm">
+                <div class="form-section">
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="form-group mb-3">
+                        <label for="dutySelect" class="form-label">Select Duty</label>
+                        <select class="form-control" id="dutySelect" name="duty_id" required>
+                          <option value="">-- Select Duty --</option>
+                          <?php foreach ($duties as $duty): ?>
+                          <option value="<?php echo $duty['id']; ?>">
+                            <?php echo htmlspecialchars($duty['duty_type']); ?> (<?php echo $duty['required_hours']; ?> hours required)
+                          </option>
+                          <?php endforeach; ?>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-group mb-3">
+                        <label for="dutyDate" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="dutyDate" name="date" required>
+                      </div>
                     </div>
                   </div>
-                  <div class="col-md-6">
-                    <div class="form-group mb-3">
-                      <label for="dutyDate" class="form-label">Date</label>
-                      <input type="date" class="form-control" id="dutyDate" required>
-                    </div>
-                  </div>
                 </div>
-              </div>
-              
-              <div class="form-section">
-                <h5>Time Log</h5>
-                <div class="time-inputs">
-                  <div class="form-group">
-                    <label for="timeIn" class="form-label">Time In</label>
-                    <input type="time" class="form-control" id="timeIn" required>
-                  </div>
-                  <div class="form-group">
-                    <label for="timeOut" class="form-label">Time Out</label>
-                    <input type="time" class="form-control" id="timeOut" required>
-                  </div>
-                </div>
-                <div class="hours-calculated" id="hoursCalculated">
-                  Total hours: 0.00
-                </div>
-              </div>
-              
-              <div class="form-section">
-                <h5>Task Description</h5>
-                <div class="mb-3">
-                  <label for="taskDescription" class="form-label">Describe tasks performed during this duty period</label>
-                  <textarea class="form-control" id="taskDescription" rows="4" placeholder="Describe the duties and tasks you performed..." required></textarea>
-                </div>
-              </div>
-              
-              <div class="form-section">
-                <h5>Signature</h5>
-                <p class="text-muted">Please provide your signature to verify this duty log</p>
                 
-                <div class="signature-pad-container">
-                  <div class="signature-actions">
-                    <button class="btn btn-outline-secondary btn-sm" id="clearSignature">
-                      <i class="bi bi-x-circle"></i> Clear
-                    </button>
+                <div class="form-section">
+                  <h5>Time Log</h5>
+                  <div class="time-inputs">
+                    <div class="form-group">
+                      <label for="timeIn" class="form-label">Time In</label>
+                      <input type="time" class="form-control" id="timeIn" name="time_in" required>
+                    </div>
+                    <div class="form-group">
+                      <label for="timeOut" class="form-label">Time Out</label>
+                      <input type="time" class="form-control" id="timeOut" name="time_out" required>
+                    </div>
                   </div>
-                  <canvas id="signaturePad" class="signature-pad" width="500" height="200"></canvas>
-                  <input type="hidden" id="signatureData">
+                  <div class="hours-calculated" id="hoursCalculated">
+                    Total hours: 0.00
+                  </div>
+                  <input type="hidden" id="hoursInput" name="hours" value="0">
                 </div>
-              </div>
-              
-              <div class="d-grid gap-2 mt-4">
-                <button class="btn btn-primary btn-lg" id="submitDutyBtn">
-                  <i class="bi bi-check-circle"></i> Submit Duty Log
-                </button>
-              </div>
+                
+                <div class="form-section">
+                  <h5>Task Description</h5>
+                  <div class="mb-3">
+                    <label for="taskDescription" class="form-label">Describe tasks performed during this duty period</label>
+                    <textarea class="form-control" id="taskDescription" name="task_description" rows="4" placeholder="Describe the duties and tasks you performed..." required></textarea>
+                  </div>
+                </div>
+                
+                <div class="form-section">
+                  <h5>Signature</h5>
+                  <p class="text-muted">Please provide your signature to verify this duty log</p>
+                  
+                  <div class="signature-pad-container">
+                    <div class="signature-actions">
+                      <button type="button" class="btn btn-outline-secondary btn-sm" id="clearSignature">
+                        <i class="bi bi-x-circle"></i> Clear
+                      </button>
+                    </div>
+                    <canvas id="signaturePad" class="signature-pad" width="500" height="200"></canvas>
+                    <input type="hidden" id="signatureData" name="signature_data">
+                  </div>
+                </div>
+                
+                <div class="d-grid gap-2 mt-4">
+                  <button type="submit" class="btn btn-primary btn-lg" id="submitDutyBtn">
+                    <i class="bi bi-check-circle"></i> Submit Duty Log
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
           
@@ -311,11 +416,32 @@
             <div class="log-section">
               <h3 class="section-title">Recent Logs</h3>
               <div id="recentLogs">
-                <!-- Recent logs will be populated here -->
+                <?php if (empty($recentLogs)): ?>
                 <div class="text-center py-4">
                   <i class="bi bi-inbox display-4 text-muted"></i>
                   <p class="mt-2">No recent duty logs</p>
                 </div>
+                <?php else: ?>
+                  <?php foreach ($recentLogs as $log): ?>
+                  <div class="duty-card">
+                    <div class="card-body">
+                      <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="card-title"><?php echo htmlspecialchars($log['duty_type']); ?></h6>
+                        <span class="status-badge status-<?php echo $log['status']; ?>">
+                          <?php echo ucfirst($log['status']); ?>
+                        </span>
+                      </div>
+                      
+                      <p class="card-text small"><?php echo htmlspecialchars($log['task_description']); ?></p>
+                      
+                      <div class="d-flex justify-content-between align-items-center">
+                        <span class="time-badge"><i class="bi bi-calendar"></i> <?php echo $log['date']; ?></span>
+                        <span class="time-badge"><i class="bi bi-clock"></i> <?php echo $log['hours']; ?>h</span>
+                      </div>
+                    </div>
+                  </div>
+                  <?php endforeach; ?>
+                <?php endif; ?>
               </div>
             </div>
           </div>
@@ -330,7 +456,7 @@
     <div class="container footer-top">
       <div class="row gy-4">
         <div class="col-lg-5 col-md-12 footer-about">
-          <a href="index.html" class="logo d-flex align-items-center">
+          <a href="index.php" class="logo d-flex align-items-center">
             <span class="sitename">Student Duty Log</span>
           </a>
           <p>Empowering PHINMA Cagayan de Oro College with innovative student duty management solutions. Streamlining workflows, enhancing accountability, and fostering academic excellence through technology tailored for Filipino students.</p>
@@ -345,8 +471,8 @@
         <div class="col-lg-2 col-6 footer-links">
           <h4>Quick Links</h4>
           <ul>
-            <li><a href="#">Home</a></li>
-            <li><a href="#">Dashboard</a></li>
+            <li><a href="index.php">Home</a></li>
+            <li><a href="dashboard.php">Dashboard</a></li>
             <li><a href="#">Student Portal</a></li>
             <li><a href="#">Help Center</a></li>
             <li><a href="#">Contact Support</a></li>
@@ -408,38 +534,6 @@
       const today = new Date();
       document.getElementById('dutyDate').valueAsDate = today;
       
-      // Sample data for recent logs
-      const recentLogs = [
-        {
-          id: 1,
-          date: "2025-09-03",
-          timeIn: "08:00",
-          timeOut: "17:00",
-          hours: 8.00,
-          dutyType: "ID Station",
-          status: "approved",
-          taskDescription: "Served new students to get their ID cards"
-        },
-        {
-          id: 2,
-          date: "2025-09-02",
-          timeIn: "09:30",
-          timeOut: "14:00",
-          hours: 4.50,
-          dutyType: "Library Assistant",
-          status: "pending",
-          taskDescription: "Organized books in the science section"
-        }
-      ];
-      
-      // Render recent logs
-      renderRecentLogs(recentLogs);
-      updateStats(recentLogs);
-      
-      // Calculate hours when time inputs change
-      document.getElementById('timeIn').addEventListener('change', calculateHours);
-      document.getElementById('timeOut').addEventListener('change', calculateHours);
-      
       // Initialize signature pad
       const canvas = document.getElementById('signaturePad');
       const ctx = canvas.getContext('2d');
@@ -466,31 +560,15 @@
       // Clear signature button
       document.getElementById('clearSignature').addEventListener('click', clearSignature);
       
-      // Submit button handler
-      document.getElementById('submitDutyBtn').addEventListener('click', function() {
-        // Validate form
+      // Calculate hours when time inputs change
+      document.getElementById('timeIn').addEventListener('change', calculateHours);
+      document.getElementById('timeOut').addEventListener('change', calculateHours);
+      
+      // Form validation
+      document.getElementById('dutyForm').addEventListener('submit', function(e) {
         if (!validateForm()) {
-          return;
+          e.preventDefault();
         }
-        
-        // In a real application, this would be an AJAX call to the server
-        const formData = {
-          dutyId: document.getElementById('dutySelect').value,
-          date: document.getElementById('dutyDate').value,
-          timeIn: document.getElementById('timeIn').value,
-          timeOut: document.getElementById('timeOut').value,
-          hours: calculateHours(),
-          taskDescription: document.getElementById('taskDescription').value,
-          signature: document.getElementById('signatureData').value
-        };
-        
-        console.log('Submitting duty log:', formData);
-        
-        // Show success message
-        alert('Duty log submitted successfully! It is now pending approval.');
-        
-        // Reset form
-        resetForm();
       });
     });
     
@@ -500,6 +578,7 @@
       
       if (!timeIn || !timeOut) {
         document.getElementById('hoursCalculated').textContent = 'Total hours: 0.00';
+        document.getElementById('hoursInput').value = 0;
         return 0;
       }
       
@@ -516,6 +595,7 @@
       
       const hours = totalMinutes / 60;
       document.getElementById('hoursCalculated').textContent = `Total hours: ${hours.toFixed(2)}`;
+      document.getElementById('hoursInput').value = hours.toFixed(2);
       
       return hours;
     }
@@ -527,6 +607,7 @@
       const timeOut = document.getElementById('timeOut');
       const taskDescription = document.getElementById('taskDescription');
       const signatureData = document.getElementById('signatureData');
+      const hours = calculateHours();
       
       if (!dutySelect.value) {
         alert('Please select a duty.');
@@ -552,7 +633,7 @@
         return false;
       }
       
-      if (calculateHours() <= 0) {
+      if (hours <= 0) {
         alert('Time out must be after time in.');
         timeOut.focus();
         return false;
@@ -570,15 +651,6 @@
       }
       
       return true;
-    }
-    
-    function resetForm() {
-      document.getElementById('dutySelect').value = '';
-      document.getElementById('timeIn').value = '';
-      document.getElementById('timeOut').value = '';
-      document.getElementById('taskDescription').value = '';
-      document.getElementById('hoursCalculated').textContent = 'Total hours: 0.00';
-      clearSignature();
     }
     
     // Signature pad functions
@@ -611,9 +683,12 @@
     function handleTouchStart(e) {
       e.preventDefault();
       const touch = e.touches[0];
+      const rect = e.target.getBoundingClientRect();
       const mouseEvent = new MouseEvent('mousedown', {
         clientX: touch.clientX,
-        clientY: touch.clientY
+        clientY: touch.clientY,
+        offsetX: touch.clientX - rect.left,
+        offsetY: touch.clientY - rect.top
       });
       document.getElementById('signaturePad').dispatchEvent(mouseEvent);
     }
@@ -621,9 +696,12 @@
     function handleTouchMove(e) {
       e.preventDefault();
       const touch = e.touches[0];
+      const rect = e.target.getBoundingClientRect();
       const mouseEvent = new MouseEvent('mousemove', {
         clientX: touch.clientX,
-        clientY: touch.clientY
+        clientY: touch.clientY,
+        offsetX: touch.clientX - rect.left,
+        offsetY: touch.clientY - rect.top
       });
       document.getElementById('signaturePad').dispatchEvent(mouseEvent);
     }
@@ -639,58 +717,6 @@
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       document.getElementById('signatureData').value = '';
-    }
-    
-    function renderRecentLogs(logs) {
-      const container = document.getElementById('recentLogs');
-      
-      if (logs.length === 0) {
-        container.innerHTML = `
-          <div class="text-center py-4">
-            <i class="bi bi-inbox display-4 text-muted"></i>
-            <p class="mt-2">No recent duty logs</p>
-          </div>
-        `;
-        return;
-      }
-      
-      container.innerHTML = '';
-      
-      logs.forEach(log => {
-        const statusClass = `status-${log.status}`;
-        const statusText = log.status.charAt(0).toUpperCase() + log.status.slice(1);
-        
-        const logElement = document.createElement('div');
-        logElement.className = 'duty-card';
-        logElement.innerHTML = `
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-              <h6 class="card-title">${log.dutyType}</h6>
-              <span class="status-badge ${statusClass}">${statusText}</span>
-            </div>
-            
-            <p class="card-text small">${log.taskDescription}</p>
-            
-            <div class="d-flex justify-content-between align-items-center">
-              <span class="time-badge"><i class="bi bi-calendar"></i> ${log.date}</span>
-              <span class="time-badge"><i class="bi bi-clock"></i> ${log.timeIn} - ${log.timeOut}</span>
-              <span class="time-badge"><i class="bi bi-hourglass-split"></i> ${log.hours}h</span>
-            </div>
-          </div>
-        `;
-        
-        container.appendChild(logElement);
-      });
-    }
-    
-    function updateStats(logs) {
-      const totalHours = logs.reduce((sum, log) => sum + log.hours, 0);
-      const pendingCount = logs.filter(log => log.status === 'pending').length;
-      const completedCount = logs.filter(log => log.status === 'approved').length;
-      
-      document.getElementById('totalHours').textContent = totalHours.toFixed(1);
-      document.getElementById('pendingCount').textContent = pendingCount;
-      document.getElementById('completedCount').textContent = completedCount;
     }
   </script>
 

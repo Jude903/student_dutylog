@@ -1,3 +1,15 @@
+<?php
+require_once 'config/config.php';
+
+// Fetch statistics for the homepage
+$statsQuery = "SELECT 
+    (SELECT COUNT(*) FROM users WHERE role = 'student') as total_students,
+    (SELECT COUNT(*) FROM duties WHERE status = 'completed') as completed_duties,
+    (SELECT COUNT(DISTINCT u.department) FROM users u WHERE u.role = 'student') as departments_count";
+
+$statsStmt = $pdo->query($statsQuery);
+$stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -8,8 +20,7 @@
   <meta name="keywords" content="PHINMA COC, student duty, duty log, college management, Cagayan de Oro">
 
   <!-- Favicons -->
-  <link href="assets/img/favicon.png" rel="icon">
-  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+  <link href="assets/img/CSDL logo.png" rel="icon">
 
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com" rel="preconnect">
@@ -32,26 +43,26 @@
   <header id="header" class="header sticky-top">
     <div class="branding d-flex align-items-center">
       <div class="container position-relative d-flex align-items-center justify-content-between">
-        <a href="index.html" class="logo d-flex align-items-center">
+        <a href="index.php" class="logo d-flex align-items-center">
           <img src="assets/img/CSDL logo.png" alt="">
           <h1 class="sitename">CSDL</h1>
         </a>
 
         <nav id="navmenu" class="navmenu">
           <ul>
-            <li><a href="index.html" class="active">Home</a></li>
-            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="index.php" class="active">Home</a></li>
+            <li><a href="dashboard.php">Dashboard</a></li>
             <li class="dropdown">
               <a href="#"></i>Duty Options</a>
               <ul class="dropdown-menu">
-                  <li><a href="assign-duty.html"></i>Assign Duty</a></li>
-                  <li><a href="approve-duty.html"></i>Approve Duty</a></li>
-                  <li><a href="log-duty.html"></i>Log Duty</a></li>
-                  <li><a href="view-duty.html"></i>View Duty</a></li>
-                  <li><a href="monitor-duty.html"></i>Monitor Duty</a></li>
+                  <li><a href="assign-duty.php"></i>Assign Duty</a></li>
+                  <li><a href="approve-duty.php"></i>Approve Duty</a></li>
+                  <li><a href="log-duty.php"></i>Log Duty</a></li>
+                  <li><a href="view-duty.php"></i>View Duty</a></li>
+                  <li><a href="monitor-duty.php"></i>Monitor Duty</a></li>
               </ul>
           </li>
-            <li><a href="evaluate-student.html">Evaluate Student</a></li>
+            <li><a href="evaluate-student.php">Evaluate Student</a></li>
           </ul>
           <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
         </nav>
@@ -71,27 +82,25 @@
               <h1>Student Duty Log </h1>
               <p>Comprehensive digital platform for managing, tracking, and evaluating student duties across all departments at PHINMA COC. Enhancing accountability, streamlining workflows, and promoting student engagement in Cagayan de Oro City.</p>
 
-
-
               <div class="trust-badges">
                 <div class="badge-item">
                   <i class="bi bi-people-fill"></i>
                   <div class="badge-text">
-                    <span class="count">3,200+</span>
+                    <span class="count"><?php echo number_format($stats['total_students']); ?>+</span>
                     <span class="label">Enrolled Students</span>
                   </div>
                 </div>
                 <div class="badge-item">
                   <i class="bi bi-journal-check"></i>
                   <div class="badge-text">
-                    <span class="count">8,500+</span>
+                    <span class="count"><?php echo number_format($stats['completed_duties']); ?>+</span>
                     <span class="label">Duties Completed</span>
                   </div>
                 </div>
                 <div class="badge-item">
                   <i class="bi bi-building"></i>
                   <div class="badge-text">
-                    <span class="count">12</span>
+                    <span class="count"><?php echo $stats['departments_count']; ?></span>
                     <span class="label">Academic Departments</span>
                   </div>
                 </div>
@@ -121,7 +130,7 @@
                 </div>
                 <div class="col-6 col-md-3" data-aos="fade-up" data-aos-delay="400">
                   <div class="achievement-box">
-                    <h3>3,200+</h3>
+                    <h3><?php echo number_format($stats['total_students']); ?>+</h3>
                     <p>Active Students</p>
                   </div>
                 </div>
@@ -149,14 +158,13 @@
       </div>
     </section>
 
-
   </main>
 
   <footer id="footer" class="footer dark-background">
     <div class="container footer-top">
       <div class="row gy-4">
         <div class="col-lg-5 col-md-12 footer-about">
-          <a href="index.html" class="logo d-flex align-items-center">
+          <a href="index.php" class="logo d-flex align-items-center">
             <span class="sitename">Student Duty Log</span>
           </a>
           <p>Empowering PHINMA Cagayan de Oro College with innovative student duty management solutions. Streamlining workflows, enhancing accountability, and fostering academic excellence through technology tailored for Filipino students.</p>
@@ -171,8 +179,8 @@
         <div class="col-lg-2 col-6 footer-links">
           <h4>Quick Links</h4>
           <ul>
-            <li><a href="#">Home</a></li>
-            <li><a href="#">Dashboard</a></li>
+            <li><a href="index.php">Home</a></li>
+            <li><a href="dashboard.php">Dashboard</a></li>
             <li><a href="#">Student Portal</a></li>
             <li><a href="#">Help Center</a></li>
             <li><a href="#">Contact Support</a></li>
