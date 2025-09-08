@@ -43,21 +43,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Login - Scholar's Duty Log</title>
-    <link rel="stylesheet" href="login.css" />
+    <link rel="stylesheet" href="assets/css/login.css" />
 </head>
 <body class="login-page">
     <div class="split-container">
         <div class="left-side">
-            <img src="images/csdl_logo.png" alt="CSDL Logo" class="large-logo" />
+            <img src="assets/img/CSDL logo.png" alt="CSDL Logo" class="large-logo" />
             <h2>Center for Student Development and Leadership</h2>
         </div>
         <div class="right-side">
-            <img src="images/cdo_college_logo.png" alt="Cagayan de Oro College Logo" class="small-logo" />
-            <p>Cagayan de Oro College<br>Puerto Campus</p>
-            <h3>Please enter your credentials to access your account</h3>
-            <?php if ($error): ?>
-                <div class="error"><?php echo $error; ?></div>
-            <?php endif; ?>
+            <img src="assets/img/cocpgp.png" alt="Cagayan de Oro College Logo" class="small-logo" />
+            <h3><center>Cagayan de Oro College<br>Puerto Campus</center></h3>
+            <h4>Please enter your credentials to access your account</h4>
             <form method="POST" action="">
                 <div class="form-group">
                     <label for="username">Username</label>

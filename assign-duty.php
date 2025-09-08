@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $studentId = $_POST['student_id'];
     $dutyType = $_POST['duty_type'];
     $requiredHours = $_POST['required_hours'];
-    $deadline = $_POST['deadline'];
+    $report_on = $_POST['report_on'];
     $description = $_POST['description'];
     $assignedBy = $_POST['assigned_by'];
     
@@ -63,7 +63,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta name="keywords" content="PHINMA COC, student duty, duty assignment, college management, Cagayan de Oro">
 
   <!-- Favicons -->
-  <link href="assets/img/CSDL logo.png" rel="icon">
+  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
@@ -78,58 +80,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   <!-- Main CSS File -->
   <link href="assets/css/main.css" rel="stylesheet">
+  <link href="assets/css/assign-duty.css" rel="stylesheet">
   
-  <style>
-    .assignment-section {
-      background-color: #f8f9fa;
-      padding: 30px;
-      border-radius: 8px;
-      margin-bottom: 30px;
-    }
-    .student-list {
-      max-height: 400px;
-      overflow-y: auto;
-    }
-    .student-item {
-      padding: 12px 15px;
-      border-bottom: 1px solid #eee;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-    .student-item:hover {
-      background-color: #e9f7fe;
-    }
-    .student-item.selected {
-      background-color: #d1ecf1;
-      border-left: 4px solid #0c5460;
-    }
-    .duty-details {
-      background-color: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-    }
-    .summary-card {
-      background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-      color: white;
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 20px;
-    }
-    .form-section {
-      margin-bottom: 25px;
-    }
-    .section-title {
-      border-bottom: 2px solid #f1f1f1;
-      padding-bottom: 10px;
-      margin-bottom: 20px;
-      font-weight: 600;
-      color: #2c3e50;
-    }
-    .alert {
-      margin-bottom: 20px;
-    }
-  </style>
 </head>
 
 <body class="index-page">
@@ -292,8 +244,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                       <input type="number" class="form-control" id="requiredHours" name="required_hours" min="1" value="40" required>
                     </div>
                     <div class="col-md-6">
-                      <label for="deadline" class="form-label">Completion Deadline</label>
-                      <input type="date" class="form-control" id="deadline" name="deadline" required>
+                      <label for="report_on" class="form-label">Report On</label>
+                      <input type="date" class="form-control" id="report_on" name="report_on" required>
                     </div>
                   </div>
                 </div>
@@ -302,7 +254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   <h5>Duty Description</h5>
                   <div class="mb-3">
                     <label for="dutyDescription" class="form-label">Responsibilities and Tasks</label>
-                    <textarea class="form-control" id="dutyDescription" name="description" rows="4" placeholder="Describe the duties, responsibilities, and expectations..." required></textarea>
+                    <textarea class="form-control" id="dutyDescription" name="description" rows="4" placeholder="Describe the duties, responsibilities, and expectations..."></textarea>
                   </div>
                 </div>
                 
@@ -316,10 +268,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <option value="<?php echo $supervisor['id']; ?>"><?php echo htmlspecialchars($supervisor['name']); ?></option>
                         <?php endforeach; ?>
                       </select>
-                    </div>
-                    <div class="col-md-6">
-                      <label for="supervisorNotes" class="form-label">Additional Notes</label>
-                      <textarea class="form-control" id="supervisorNotes" name="supervisor_notes" rows="2" placeholder="Any special instructions..."></textarea>
                     </div>
                   </div>
                 </div>
@@ -415,10 +363,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      // Set default deadline to two weeks from now
-      const defaultDeadline = new Date();
-      defaultDeadline.setDate(defaultDeadline.getDate() + 14);
-      document.getElementById('deadline').valueAsDate = defaultDeadline;
+      // Set default report_on to two weeks from now
+      const defaultReport_on = new Date();
+      defaultReport_on.setDate(defaultReport_on.getDate() + 14);
+      document.getElementById('report_on').valueAsDate = defaultReport_on;
       
       // Student selection
       let selectedStudentId = null;

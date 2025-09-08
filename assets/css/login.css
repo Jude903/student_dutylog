@@ -46,6 +46,12 @@ body.login-page {
 }
 
 .right-side h3 {
+    font-weight: 700;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+.right-side h4 {
     margin-bottom: 1.5rem;
     font-weight: 600;
     font-size: 1.1rem;
@@ -123,4 +129,14 @@ body.login-page {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* Small logo image size */
+.small-logo {
+    width: 140px;
+    height: auto;
+    margin-bottom: 1rem;
+    display: block;
+    margin: auto;
+    margin-top: 1rem;
 }
