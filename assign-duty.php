@@ -195,8 +195,7 @@ function processFacilitatorDuty($room, $section, $classType, $instructor, $sched
   <meta name="keywords" content="PHINMA COC, student duty, duty assignment, college management, Cagayan de Oro">
 
   <!-- Favicons -->
-  <link href="assets/img/favicon.png" rel="icon">
-  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+  <link href="assets/img/CSDL logo.png" rel="icon">
 
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com" rel="preconnect">
@@ -684,15 +683,16 @@ function processFacilitatorDuty($room, $section, $classType, $instructor, $sched
       </div>
     </div>
   </div>
+  // Replace the entire JavaScript section with this corrected version:
 
-  <script>
+<script>
     document.addEventListener('DOMContentLoaded', function() {
       // Set default report_on to two weeks from now
       const defaultReport_on = new Date();
       defaultReport_on.setDate(defaultReport_on.getDate() + 14);
       document.getElementById('report_on').valueAsDate = defaultReport_on;
       
-  // Student selection
+      // Student selection
       let selectedStudentId = null;
       const studentList = document.getElementById('studentList');
       studentList.addEventListener('click', function(e) {
@@ -797,37 +797,9 @@ function processFacilitatorDuty($room, $section, $classType, $instructor, $sched
         if (selectedStudentId) {
           const studentItem = document.querySelector('.student-item.selected');
           const studentName = studentItem.querySelector('h6').textContent;
-          const dutyType = document.querySelector('input[name="duty_type"]:checked');
-          updateSummary(studentName, dutyType ? dutyType.value : null, this.value);
+          updateSummary(studentName, hiddenInput.value, this.value);
         }
       });
-
-      // ---------- Semester-specific state handling ----------
-      const semesterSelect = document.getElementById('semesterSelect');
-      // Initialize semester state for 1st and 2nd sem
-      const semesterState = {
-        '1st': {
-          duty_type: null,
-          custom_duty_type: '',
-          required_hours: document.getElementById('requiredHours').value || '',
-          deadline: document.getElementById('deadline').value || '',
-          description: document.getElementById('dutyDescription').value || '',
-          assigned_by: document.getElementById('supervisor').value || '',
-          supervisor_notes: document.getElementById('supervisorNotes').value || ''
-        },
-        '2nd': {
-          duty_type: null,
-          custom_duty_type: '',
-          required_hours: document.getElementById('requiredHours').value || '',
-          deadline: document.getElementById('deadline').value || '',
-          description: document.getElementById('dutyDescription').value || '',
-          assigned_by: document.getElementById('supervisor').value || '',
-          supervisor_notes: document.getElementById('supervisorNotes').value || ''
-        }
-      };
-
-      // Current selected semester key
-      let currentSemester = semesterSelect.value || '1st';
 
       // Semester reminder element
       const semesterReminder = document.getElementById('semesterReminder');
@@ -836,106 +808,20 @@ function processFacilitatorDuty($room, $section, $classType, $instructor, $sched
         semesterReminder.textContent = `Assigning for: ${label}`;
       }
 
-      // Save current inputs into semesterState[currentSemester]
-      function saveCurrentSemester() {
-        const dutyTypeEl = document.querySelector('input[name="duty_type"]:checked');
-        semesterState[currentSemester].duty_type = dutyTypeEl ? dutyTypeEl.value : null;
-        semesterState[currentSemester].custom_duty_type = document.getElementById('otherDutyType').value || '';
-        semesterState[currentSemester].required_hours = document.getElementById('requiredHours').value || '';
-        semesterState[currentSemester].deadline = document.getElementById('deadline').value || '';
-        semesterState[currentSemester].description = document.getElementById('dutyDescription').value || '';
-        semesterState[currentSemester].assigned_by = document.getElementById('supervisor').value || '';
-        semesterState[currentSemester].supervisor_notes = document.getElementById('supervisorNotes').value || '';
-      }
-
-      // Load semester values into the form
-      function loadSemester(sem) {
-        const state = semesterState[sem];
-        // duty type radios
-        if (state.duty_type) {
-          const radio = document.querySelector('input[name="duty_type"][value="' + state.duty_type + '"]');
-          if (radio) radio.checked = true;
-          // if value is not one of the radios (custom), check 'Other'
-          if (!radio && state.duty_type !== null) {
-            const otherRadio = document.querySelector('input[name="duty_type"][value="Other"]');
-            if (otherRadio) otherRadio.checked = true;
-          }
-        } else {
-          document.querySelectorAll('input[name="duty_type"]').forEach(r => r.checked = false);
-        }
-        document.getElementById('otherDutyType').value = state.custom_duty_type || '';
-        document.getElementById('requiredHours').value = state.required_hours || '';
-        document.getElementById('deadline').value = state.deadline || document.getElementById('deadline').value;
-        document.getElementById('dutyDescription').value = state.description || '';
-        document.getElementById('supervisor').value = state.assigned_by || document.getElementById('supervisor').value;
-        document.getElementById('supervisorNotes').value = state.supervisor_notes || '';
-
-        // Show custom field if duty_type is Other
-        const currentDutyType = state.duty_type;
-        document.getElementById('customDutyType').style.display = (currentDutyType === 'Other') ? 'block' : 'none';
-      }
-
-      // Wire up inputs to update semesterState live
-      ['requiredHours','deadline','dutyDescription','supervisor','supervisorNotes','otherDutyType'].forEach(id => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.addEventListener('input', function() {
-          semesterState[currentSemester][mapIdToKey(id)] = this.value;
-        });
-      });
-
-      // Map element id to state key
-      function mapIdToKey(id) {
-        if (id === 'requiredHours') return 'required_hours';
-        if (id === 'dutyDescription') return 'description';
-        if (id === 'supervisorNotes') return 'supervisor_notes';
-        if (id === 'otherDutyType') return 'custom_duty_type';
-        return id;
-      }
-
-      // duty radio buttons update state on change
-      document.querySelectorAll('input[name="duty_type"]').forEach(r => {
-        r.addEventListener('change', function() {
-          semesterState[currentSemester].duty_type = this.value;
-          // Show/hide custom input
-          document.getElementById('customDutyType').style.display = (this.value === 'Other') ? 'block' : 'none';
-          // If Other not selected, clear the custom field for this semester
-          if (this.value !== 'Other') semesterState[currentSemester].custom_duty_type = '';
-        });
-      });
-
-      // supervisor select change
-      document.getElementById('supervisor').addEventListener('change', function() {
-        semesterState[currentSemester].assigned_by = this.value;
-      });
-
-      // Semester select change handler
-      semesterSelect.addEventListener('change', function() {
-        // save previous
-        saveCurrentSemester();
-        // switch
-        currentSemester = this.value;
-        loadSemester(currentSemester);
-  updateSemesterReminder(currentSemester);
-        // update summary if a student is selected
+      // Update semester reminder on change
+      document.getElementById('semesterSelect').addEventListener('change', function() {
+        updateSemesterReminder(this.value);
+        
+        // Update summary if a student is selected
         if (selectedStudentId) {
           const studentItem = document.querySelector('.student-item.selected');
           const studentName = studentItem.querySelector('h6').textContent;
-          const dutyType = semesterState[currentSemester].duty_type;
-          const hours = semesterState[currentSemester].required_hours;
-          updateSummary(studentName, dutyType, hours);
+          updateSummary(studentName, hiddenInput.value, document.getElementById('requiredHours').value);
         }
       });
 
       // Ensure initial load for default semester
-      loadSemester(currentSemester);
-  updateSemesterReminder(currentSemester);
-
-      // When page is about to submit, save current semester values
-      document.querySelector('form').addEventListener('submit', function() {
-        saveCurrentSemester();
-      });
-      // ---------- end semester handling ----------
+      updateSemesterReminder('1st');
       
       // Form submission validation
       document.querySelector('form').addEventListener('submit', function(e) {
@@ -986,56 +872,103 @@ function processFacilitatorDuty($room, $section, $classType, $instructor, $sched
       // ---- Add student modal handling ----
       const addStudentModalEl = document.getElementById('addStudentModal');
       const addStudentModal = new bootstrap.Modal(addStudentModalEl);
-      document.getElementById('openAddStudent').addEventListener('click', function() {
-        document.getElementById('addStudentForm').reset();
-        addStudentModal.show();
-      });
+      
+      // Make sure the button exists before adding event listener
+      const openAddStudentBtn = document.getElementById('openAddStudent');
+      if (openAddStudentBtn) {
+        openAddStudentBtn.addEventListener('click', function() {
+          document.getElementById('addStudentForm').reset();
+          addStudentModal.show();
+        });
+      }
 
-      document.getElementById('submitAddStudent').addEventListener('click', function() {
-        const form = document.getElementById('addStudentForm');
-        const data = new FormData(form);
-        // Basic client-side validation
-        if (!data.get('firstname') || !data.get('lastname') || !data.get('gmail')) {
-          alert('Please provide firstname, lastname and gmail');
-          return;
-        }
+      // Make sure the submit button exists before adding event listener
+      const submitAddStudentBtn = document.getElementById('submitAddStudent');
+      if (submitAddStudentBtn) {
+        submitAddStudentBtn.addEventListener('click', function() {
+          const form = document.getElementById('addStudentForm');
+          const formData = new FormData(form);
+          
+          // Basic client-side validation
+          if (!formData.get('firstname') || !formData.get('lastname') || !formData.get('gmail')) {
+            alert('Please provide firstname, lastname and gmail');
+            return;
+          }
 
-        fetch('add-student.php', { method: 'POST', body: data })
-          .then(r => r.json())
+          fetch('add-student.php', { 
+            method: 'POST', 
+            body: formData 
+          })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Network response was not ok');
+            }
+            return response.json();
+          })
           .then(resp => {
-            if (!resp.success) throw new Error(resp.message || 'Failed');
+            if (!resp.success) {
+              throw new Error(resp.message || 'Failed to add student');
+            }
+            
             // Add new student to the list UI
-            const li = document.createElement('div');
-            li.className = 'student-item';
-            li.dataset.id = resp.id;
-            li.innerHTML = `<h6 class="mb-1">${resp.firstname} ${resp.lastname}</h6><small class="text-muted">${resp.gmail}</small>`;
+            const studentItem = document.createElement('div');
+            studentItem.className = 'student-item';
+            studentItem.dataset.id = resp.id;
+            studentItem.innerHTML = `
+              <h6 class="mb-1">${resp.firstname} ${resp.lastname}</h6>
+              <small class="text-muted">${resp.course || 'No course'} • ${resp.gmail}</small>
+            `;
 
             // Clear search so the new item is visible immediately
             const searchEl = document.getElementById('studentSearch');
             if (searchEl) {
               searchEl.value = '';
-              // trigger input handler to refresh visibility
-              searchEl.dispatchEvent(new Event('input'));
+              // Trigger input handler to refresh visibility
+              const event = new Event('input');
+              searchEl.dispatchEvent(event);
             }
 
-            // prepend to list and make it selected
+            // Prepend to list and make it selected
             const list = document.getElementById('studentList');
-            // deselect others
-            document.querySelectorAll('.student-item.selected').forEach(it => it.classList.remove('selected'));
-            list.insertBefore(li, list.firstChild);
-            li.classList.add('selected');
-            li.style.display = 'block';
-            // set selected hidden input
+            // Deselect others
+            document.querySelectorAll('.student-item.selected').forEach(item => {
+              item.classList.remove('selected');
+            });
+            
+            list.insertBefore(studentItem, list.firstChild);
+            studentItem.classList.add('selected');
+            
+            // Set selected hidden input
             document.getElementById('selectedStudentId').value = resp.id;
+            
+            // Update summary
             updateSummary(`${resp.firstname} ${resp.lastname}`);
-            // ensure it's visible under the search input
-            li.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Close modal
             addStudentModal.hide();
+            
+            // Show success message
+            alert('Student added successfully!');
           })
           .catch(err => {
             alert('Error adding student: ' + err.message);
+            console.error('Error:', err);
           });
-      });
+        });
+      }
+
+      // Make the form submit when pressing Enter in any input field
+      const addStudentForm = document.getElementById('addStudentForm');
+      if (addStudentForm) {
+        addStudentForm.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            if (submitAddStudentBtn) {
+              submitAddStudentBtn.click();
+            }
+          }
+        });
+      }
     });
   </script>
 
