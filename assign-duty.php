@@ -448,19 +448,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="modal-body">
           <form id="addStudentForm">
             <div class="row g-2">
-              <div class="col-md-4"><input class="form-control" name="firstname" placeholder="First name" required></div>
-              <div class="col-md-4"><input class="form-control" name="middlename" placeholder="Middle name"></div>
-              <div class="col-md-4"><input class="form-control" name="lastname" placeholder="Last name" required></div>
-            </div>
-            <div class="row g-2 mt-2">
-              <div class="col-md-4"><input class="form-control" name="year_level" placeholder="Year level"></div>
-              <div class="col-md-4"><input class="form-control" name="gmail" placeholder="Gmail" required></div>
-              <div class="col-md-4"><input class="form-control" name="course" placeholder="Course"></div>
-            </div>
-            <div class="row g-2 mt-2">
-              <div class="col-md-4"><select class="form-select" name="semester"><option value="1st">1st</option><option value="2nd">2nd</option></select></div>
-              <div class="col-md-4"><input class="form-control" name="school_year" placeholder="School Year (e.g. 2024-2025)"></div>
               <div class="col-md-4">
+                <label class="form-label">First name</label>
+                <input class="form-control" name="firstname" placeholder="First name" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Middle name</label>
+                <input class="form-control" name="middlename" placeholder="Middle name">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Last name</label>
+                <input class="form-control" name="lastname" placeholder="Last name" required>
+              </div>
+            </div>
+            <div class="row g-2 mt-2">
+              <div class="col-md-4">
+                <label class="form-label">Year level</label>
+                <input class="form-control" name="year_level" placeholder="Year level">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Gmail</label>
+                <input class="form-control" name="gmail" placeholder="Gmail" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Course</label>
+                <input class="form-control" name="course" placeholder="Course">
+              </div>
+            </div>
+            <div class="row g-2 mt-2">
+              <div class="col-md-4">
+                <label class="form-label">Semester</label>
+                <select class="form-select" name="semester"><option value="1st">1st</option><option value="2nd">2nd</option></select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">School Year</label>
+                <input class="form-control" name="school_year" placeholder="School Year (e.g. 2024-2025)">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Scholarship</label>
                 <select class="form-select" name="scholarship">
                   <option value="25%">25%</option>
                   <option value="50%">50%</option>
