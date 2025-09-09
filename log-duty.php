@@ -16,18 +16,22 @@ header("Pragma: no-cache");
 // Rest of your protected page content
 // ...
 require_once 'config/config.php';
-// Check if user is logged in as a student
-if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'student') {
-  // Not a logged-in student; use default/test student id
-  $studentId = 7; // Default student ID for testing
-} else {
-  $studentId = $_SESSION['user_id'];
-}
+// Set student ID
+$studentId = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 7;
 
-// Fetch student's duties
-$dutiesQuery = "SELECT id, duty_type, required_hours FROM duties WHERE student_id = :student_id AND status != 'completed'";
-$dutiesStmt = $pdo->prepare($dutiesQuery);
-$dutiesStmt->execute(['student_id' => $studentId]);
+// Fetch duties based on user role
+$userRole = $_SESSION['user_role'] ?? 'student';
+if ($userRole === 'student') {
+    // Fetch student's duties
+    $dutiesQuery = "SELECT id, duty_type, required_hours FROM duties WHERE student_id = :student_id AND status != 'completed'";
+    $dutiesStmt = $pdo->prepare($dutiesQuery);
+    $dutiesStmt->execute(['student_id' => $studentId]);
+} else {
+    // Fetch all duties for admin roles
+    $dutiesQuery = "SELECT id, duty_type, required_hours FROM duties WHERE status != 'completed'";
+    $dutiesStmt = $pdo->prepare($dutiesQuery);
+    $dutiesStmt->execute();
+}
 $duties = $dutiesStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch student's recent duty logs
@@ -254,13 +258,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </div>
           <div class="col-md-4">
             <div class="stats-card">
-              <p class="stats-number" id="pendingCount"><?php echo $stats['pending_count']; ?></p>
+              <p class="stats-number" id="pendingCount"><?php echo number_format($stats['pending_count'], 1); ?></p>
               <p class="stats-label">Pending Approval</p>
             </div>
           </div>
           <div class="col-md-4">
             <div class="stats-card">
-              <p class="stats-number" id="completedCount"><?php echo $stats['completed_count']; ?></p>
+              <p class="stats-number" id="completedCount"><?php echo number_format($stats['completed_count'], 1); ?></p>
               <p class="stats-label">Completed Duties</p>
             </div>
           </div>
@@ -277,14 +281,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="col-md-6">
                       <div class="form-group mb-3">
                         <label for="dutySelect" class="form-label">Select Duty</label>
-                        <select class="form-control" id="dutySelect" name="duty_id" required>
-                          <option value="">-- Select Duty --</option>
-                          <?php foreach ($duties as $duty): ?>
-                          <option value="<?php echo $duty['id']; ?>">
-                            <?php echo htmlspecialchars($duty['duty_type']); ?> (<?php echo $duty['required_hours']; ?> hours required)
-                          </option>
-                          <?php endforeach; ?>
-                        </select>
+                <select class="form-control" id="dutySelect" name="duty_id" required <?php echo ($userRole === 'student') ? 'disabled' : ''; ?>>
+                  <option value="">-- Select Duty --</option>
+                  <?php foreach ($duties as $index => $duty): ?>
+                  <option value="<?php echo $duty['id']; ?>" <?php echo ($userRole === 'student' && $index === 0) ? 'selected' : ''; ?>>
+                    <?php echo htmlspecialchars($duty['duty_type']); ?> (<?php echo $duty['required_hours']; ?> hours required)
+                  </option>
+                  <?php endforeach; ?>
+                </select>
+                <?php if ($userRole === 'student' && !empty($duties)): ?>
+                <input type="hidden" name="duty_id" value="<?php echo $duties[0]['id']; ?>" />
+                <?php endif; ?>
                       </div>
                     </div>
                     <div class="col-md-6">
