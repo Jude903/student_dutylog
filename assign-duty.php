@@ -11,8 +11,9 @@ header("Pragma: no-cache");
 
 require_once 'config/config.php';
 
-// Fetch students
-$studentsQuery = "SELECT id, username as name, email, department as program FROM users WHERE role = 'student'";
+// Fetch students from student_info so modal-created students appear in the list
+// Map columns to the same keys the template expects: id, name, email, program
+$studentsQuery = "SELECT student_id AS id, CONCAT(firstname, ' ', lastname) AS name, gmail AS email, course AS program FROM student_info ORDER BY lastname, firstname";
 $studentsStmt = $pdo->query($studentsQuery);
 $students = $studentsStmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -21,30 +22,38 @@ $supervisorsQuery = "SELECT id, username as name FROM users WHERE role IN ('scho
 $supervisorsStmt = $pdo->query($supervisorsQuery);
 $supervisors = $supervisorsStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Handle single form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_id'])) {
-    $studentId = $_POST['student_id'];
-    $dutyType = $_POST['duty_type'];
-    $requiredHours = $_POST['required_hours'];
-    $report_on = $_POST['report_on'];
-    $description = $_POST['description'];
-    $assignedBy = $_POST['assigned_by'];
-    
-    try {
-        $insertQuery = "INSERT INTO duties (student_id, duty_type, required_hours, assigned_by, status) 
-                       VALUES (:student_id, :duty_type, :required_hours, :assigned_by, 'assigned')";
-        $stmt = $pdo->prepare($insertQuery);
-        $stmt->execute([
-            'student_id' => $studentId,
-            'duty_type' => $dutyType,
-            'required_hours' => $requiredHours,
-            'assigned_by' => $assignedBy
-        ]);
-        
-        $successMessage = "Duty successfully assigned!";
-    } catch (PDOException $e) {
-        $errorMessage = "Error assigning duty: " . $e->getMessage();
-    }
+// Handle form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  $studentId = $_POST['student_id'] ?? null;
+  $dutyType = $_POST['duty_type'] ?? null;
+  $customDuty = trim($_POST['custom_duty_type'] ?? '');
+  $requiredHours = $_POST['required_hours'] ?? null;
+  $deadline = $_POST['deadline'] ?? null;
+  $assignedBy = $_POST['assigned_by'] ?? null;
+  $semester = $_POST['semester'] ?? '1st';
+
+  // If 'Other' was selected and custom text provided, use it as duty type
+  if ($dutyType === 'Other' && $customDuty !== '') {
+    $dutyType = $customDuty;
+  }
+
+  try {
+  // Insert duty including semester. Description is intentionally not saved server-side.
+  $insertQuery = "INSERT INTO duties (student_id, duty_type, required_hours, assigned_by, deadline, semester, status) VALUES (:student_id, :duty_type, :required_hours, :assigned_by, :deadline, :semester, 'assigned')";
+    $stmt = $pdo->prepare($insertQuery);
+    $stmt->execute([
+      'student_id' => $studentId,
+      'duty_type' => $dutyType,
+      'required_hours' => $requiredHours,
+      'assigned_by' => $assignedBy,
+      'deadline' => $deadline,
+      'semester' => $semester
+    ]);
+
+    $successMessage = "Duty successfully assigned!";
+  } catch (PDOException $e) {
+    $errorMessage = "Error assigning duty: " . $e->getMessage();
+  }
 }
 
 // Handle batch upload for Student Facilitator
@@ -337,7 +346,10 @@ function processFacilitatorDuty($room, $section, $classType, $instructor, $sched
               <div class="assignment-section">
                 <h3 class="section-title">Select Student</h3>
                 <div class="form-group mb-3">
-                  <input type="text" class="form-control" id="studentSearch" placeholder="Search students...">
+                  <div class="input-group">
+                    <input type="text" class="form-control" id="studentSearch" placeholder="Search students...">
+                    <button class="btn btn-outline-primary" type="button" id="openAddStudent">Add Student</button>
+                  </div>
                 </div>
                 <div class="student-list" id="studentList">
                   <?php foreach ($students as $student): ?>
@@ -361,7 +373,18 @@ function processFacilitatorDuty($room, $section, $classType, $instructor, $sched
             
             <div class="col-lg-8">
               <div class="duty-details">
-                <h3 class="section-title">Duty Information</h3>
+                <div class="d-flex justify-content-between align-items-center">
+                  <h3 class="section-title mb-0">Duty Information</h3>
+                  <div id="semesterReminder" class="mt-1 small fw-bold text-primary">Assigning for: 1st Semester</div>
+                  <div class="ms-3 text-end">
+                    <label for="semesterSelect" class="form-label mb-0 small text-muted">Semester</label>
+                    <select id="semesterSelect" name="semester" class="form-select form-select-sm">
+                      <option value="1st">1st Sem</option>
+                      <option value="2nd">2nd Sem</option>
+                    </select>
+                    <!-- <div id="semesterReminder" class="mt-1 small fw-bold text-primary">Assigning for: 1st Semester</div> -->
+                  </div>
+                </div>
                 
                 <input type="hidden" id="selectedStudentId" name="student_id">
                 <input type="hidden" id="selectedDutyType" name="duty_type" required>
@@ -596,6 +619,72 @@ function processFacilitatorDuty($room, $section, $classType, $instructor, $sched
   <!-- Main JS File -->
   <script src="assets/js/main.js"></script>
 
+  <!-- Add Student Modal -->
+  <div class="modal fade" id="addStudentModal" tabindex="-1" aria-labelledby="addStudentLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addStudentLabel">Add New Student</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="addStudentForm">
+            <div class="row g-2">
+              <div class="col-md-4">
+                <label class="form-label">First name</label>
+                <input class="form-control" name="firstname" placeholder="First name" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Middle name</label>
+                <input class="form-control" name="middlename" placeholder="Middle name">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Last name</label>
+                <input class="form-control" name="lastname" placeholder="Last name" required>
+              </div>
+            </div>
+            <div class="row g-2 mt-2">
+              <div class="col-md-4">
+                <label class="form-label">Year level</label>
+                <input class="form-control" name="year_level" placeholder="Year level">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Gmail</label>
+                <input class="form-control" name="gmail" placeholder="Gmail" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Course</label>
+                <input class="form-control" name="course" placeholder="Course">
+              </div>
+            </div>
+            <div class="row g-2 mt-2">
+              <div class="col-md-4">
+                <label class="form-label">Semester</label>
+                <select class="form-select" name="semester"><option value="1st">1st</option><option value="2nd">2nd</option></select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">School Year</label>
+                <input class="form-control" name="school_year" placeholder="School Year (e.g. 2024-2025)">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Scholarship</label>
+                <select class="form-select" name="scholarship">
+                  <option value="25%">25%</option>
+                  <option value="50%">50%</option>
+                  <option value="75%">75%</option>
+                </select>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="submitAddStudent">Add Student</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       // Set default report_on to two weeks from now
@@ -603,7 +692,7 @@ function processFacilitatorDuty($room, $section, $classType, $instructor, $sched
       defaultReport_on.setDate(defaultReport_on.getDate() + 14);
       document.getElementById('report_on').valueAsDate = defaultReport_on;
       
-      // Student selection
+  // Student selection
       let selectedStudentId = null;
       const studentList = document.getElementById('studentList');
       studentList.addEventListener('click', function(e) {
@@ -706,12 +795,147 @@ function processFacilitatorDuty($room, $section, $classType, $instructor, $sched
       // Hours input change
       document.getElementById('requiredHours').addEventListener('input', function() {
         if (selectedStudentId) {
-            const studentItem = document.querySelector('.student-item.selected');
-            const studentName = studentItem.querySelector('h6').textContent;
-            const dutyType = hiddenInput.value;
-            updateSummary(studentName, dutyType, this.value);
+          const studentItem = document.querySelector('.student-item.selected');
+          const studentName = studentItem.querySelector('h6').textContent;
+          const dutyType = document.querySelector('input[name="duty_type"]:checked');
+          updateSummary(studentName, dutyType ? dutyType.value : null, this.value);
         }
       });
+
+      // ---------- Semester-specific state handling ----------
+      const semesterSelect = document.getElementById('semesterSelect');
+      // Initialize semester state for 1st and 2nd sem
+      const semesterState = {
+        '1st': {
+          duty_type: null,
+          custom_duty_type: '',
+          required_hours: document.getElementById('requiredHours').value || '',
+          deadline: document.getElementById('deadline').value || '',
+          description: document.getElementById('dutyDescription').value || '',
+          assigned_by: document.getElementById('supervisor').value || '',
+          supervisor_notes: document.getElementById('supervisorNotes').value || ''
+        },
+        '2nd': {
+          duty_type: null,
+          custom_duty_type: '',
+          required_hours: document.getElementById('requiredHours').value || '',
+          deadline: document.getElementById('deadline').value || '',
+          description: document.getElementById('dutyDescription').value || '',
+          assigned_by: document.getElementById('supervisor').value || '',
+          supervisor_notes: document.getElementById('supervisorNotes').value || ''
+        }
+      };
+
+      // Current selected semester key
+      let currentSemester = semesterSelect.value || '1st';
+
+      // Semester reminder element
+      const semesterReminder = document.getElementById('semesterReminder');
+      function updateSemesterReminder(sem) {
+        const label = (sem === '1st') ? '1st Semester' : '2nd Semester';
+        semesterReminder.textContent = `Assigning for: ${label}`;
+      }
+
+      // Save current inputs into semesterState[currentSemester]
+      function saveCurrentSemester() {
+        const dutyTypeEl = document.querySelector('input[name="duty_type"]:checked');
+        semesterState[currentSemester].duty_type = dutyTypeEl ? dutyTypeEl.value : null;
+        semesterState[currentSemester].custom_duty_type = document.getElementById('otherDutyType').value || '';
+        semesterState[currentSemester].required_hours = document.getElementById('requiredHours').value || '';
+        semesterState[currentSemester].deadline = document.getElementById('deadline').value || '';
+        semesterState[currentSemester].description = document.getElementById('dutyDescription').value || '';
+        semesterState[currentSemester].assigned_by = document.getElementById('supervisor').value || '';
+        semesterState[currentSemester].supervisor_notes = document.getElementById('supervisorNotes').value || '';
+      }
+
+      // Load semester values into the form
+      function loadSemester(sem) {
+        const state = semesterState[sem];
+        // duty type radios
+        if (state.duty_type) {
+          const radio = document.querySelector('input[name="duty_type"][value="' + state.duty_type + '"]');
+          if (radio) radio.checked = true;
+          // if value is not one of the radios (custom), check 'Other'
+          if (!radio && state.duty_type !== null) {
+            const otherRadio = document.querySelector('input[name="duty_type"][value="Other"]');
+            if (otherRadio) otherRadio.checked = true;
+          }
+        } else {
+          document.querySelectorAll('input[name="duty_type"]').forEach(r => r.checked = false);
+        }
+        document.getElementById('otherDutyType').value = state.custom_duty_type || '';
+        document.getElementById('requiredHours').value = state.required_hours || '';
+        document.getElementById('deadline').value = state.deadline || document.getElementById('deadline').value;
+        document.getElementById('dutyDescription').value = state.description || '';
+        document.getElementById('supervisor').value = state.assigned_by || document.getElementById('supervisor').value;
+        document.getElementById('supervisorNotes').value = state.supervisor_notes || '';
+
+        // Show custom field if duty_type is Other
+        const currentDutyType = state.duty_type;
+        document.getElementById('customDutyType').style.display = (currentDutyType === 'Other') ? 'block' : 'none';
+      }
+
+      // Wire up inputs to update semesterState live
+      ['requiredHours','deadline','dutyDescription','supervisor','supervisorNotes','otherDutyType'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('input', function() {
+          semesterState[currentSemester][mapIdToKey(id)] = this.value;
+        });
+      });
+
+      // Map element id to state key
+      function mapIdToKey(id) {
+        if (id === 'requiredHours') return 'required_hours';
+        if (id === 'dutyDescription') return 'description';
+        if (id === 'supervisorNotes') return 'supervisor_notes';
+        if (id === 'otherDutyType') return 'custom_duty_type';
+        return id;
+      }
+
+      // duty radio buttons update state on change
+      document.querySelectorAll('input[name="duty_type"]').forEach(r => {
+        r.addEventListener('change', function() {
+          semesterState[currentSemester].duty_type = this.value;
+          // Show/hide custom input
+          document.getElementById('customDutyType').style.display = (this.value === 'Other') ? 'block' : 'none';
+          // If Other not selected, clear the custom field for this semester
+          if (this.value !== 'Other') semesterState[currentSemester].custom_duty_type = '';
+        });
+      });
+
+      // supervisor select change
+      document.getElementById('supervisor').addEventListener('change', function() {
+        semesterState[currentSemester].assigned_by = this.value;
+      });
+
+      // Semester select change handler
+      semesterSelect.addEventListener('change', function() {
+        // save previous
+        saveCurrentSemester();
+        // switch
+        currentSemester = this.value;
+        loadSemester(currentSemester);
+  updateSemesterReminder(currentSemester);
+        // update summary if a student is selected
+        if (selectedStudentId) {
+          const studentItem = document.querySelector('.student-item.selected');
+          const studentName = studentItem.querySelector('h6').textContent;
+          const dutyType = semesterState[currentSemester].duty_type;
+          const hours = semesterState[currentSemester].required_hours;
+          updateSummary(studentName, dutyType, hours);
+        }
+      });
+
+      // Ensure initial load for default semester
+      loadSemester(currentSemester);
+  updateSemesterReminder(currentSemester);
+
+      // When page is about to submit, save current semester values
+      document.querySelector('form').addEventListener('submit', function() {
+        saveCurrentSemester();
+      });
+      // ---------- end semester handling ----------
       
       // Form submission validation
       document.querySelector('form').addEventListener('submit', function(e) {
@@ -758,94 +982,59 @@ function processFacilitatorDuty($room, $section, $classType, $instructor, $sched
         
         summaryEl.innerHTML = html;
       }
-      
-      // Batch upload modal functionality
-      const uploadArea = document.getElementById('uploadArea');
-      const batchFile = document.getElementById('batchFile');
-      const selectedFileDiv = document.getElementById('selectedFile');
-      const fileName = document.getElementById('fileName');
-      const uploadBtn = document.getElementById('uploadBtn');
-      
-      // Drag and drop functionality
-      uploadArea.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        uploadArea.classList.add('dragover');
+
+      // ---- Add student modal handling ----
+      const addStudentModalEl = document.getElementById('addStudentModal');
+      const addStudentModal = new bootstrap.Modal(addStudentModalEl);
+      document.getElementById('openAddStudent').addEventListener('click', function() {
+        document.getElementById('addStudentForm').reset();
+        addStudentModal.show();
       });
-      
-      uploadArea.addEventListener('dragleave', function(e) {
-        e.preventDefault();
-        uploadArea.classList.remove('dragover');
-      });
-      
-      uploadArea.addEventListener('drop', function(e) {
-        e.preventDefault();
-        uploadArea.classList.remove('dragover');
-        
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            const file = files[0];
-            if (validateFile(file)) {
-            batchFile.files = files;
-            showSelectedFile(file.name);
+
+      document.getElementById('submitAddStudent').addEventListener('click', function() {
+        const form = document.getElementById('addStudentForm');
+        const data = new FormData(form);
+        // Basic client-side validation
+        if (!data.get('firstname') || !data.get('lastname') || !data.get('gmail')) {
+          alert('Please provide firstname, lastname and gmail');
+          return;
+        }
+
+        fetch('add-student.php', { method: 'POST', body: data })
+          .then(r => r.json())
+          .then(resp => {
+            if (!resp.success) throw new Error(resp.message || 'Failed');
+            // Add new student to the list UI
+            const li = document.createElement('div');
+            li.className = 'student-item';
+            li.dataset.id = resp.id;
+            li.innerHTML = `<h6 class="mb-1">${resp.firstname} ${resp.lastname}</h6><small class="text-muted">${resp.gmail}</small>`;
+
+            // Clear search so the new item is visible immediately
+            const searchEl = document.getElementById('studentSearch');
+            if (searchEl) {
+              searchEl.value = '';
+              // trigger input handler to refresh visibility
+              searchEl.dispatchEvent(new Event('input'));
             }
-        }
-      });
-      
-      // File input change
-      batchFile.addEventListener('change', function() {
-        if (this.files.length > 0) {
-            const file = this.files[0];
-            if (validateFile(file)) {
-            showSelectedFile(file.name);
-            }
-        }
-      });
-      
-      // Validate file type
-      function validateFile(file) {
-        const allowedTypes = ['.csv', '.xlsx', '.xls'];
-        const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
-        
-        if (!allowedTypes.includes(fileExtension)) {
-            alert('Please select a valid file type: CSV, Excel (.xlsx, .xls)');
-            return false;
-        }
-        
-        return true;
-      }
-      
-      // Show selected file
-      function showSelectedFile(name) {
-        fileName.textContent = name;
-        selectedFileDiv.style.display = 'block';
-        uploadBtn.disabled = false;
-      }
-      
-      // Template download
-      document.getElementById('downloadTemplate').addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        // Create CSV content with format only
-        const csvContent = "Room,Section,Class Type,Instructor,Schedule,Subject Code\n";
-        
-        // Create blob and download
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.setAttribute('href', url);
-        link.setAttribute('download', 'student_facilitator_template.csv');
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      });
-      
-      // Reset modal when closed
-      document.getElementById('batchUploadModal').addEventListener('hidden.bs.modal', function() {
-        document.getElementById('batchUploadForm').reset();
-        selectedFileDiv.style.display = 'none';
-        uploadBtn.disabled = true;
-        uploadArea.classList.remove('dragover');
+
+            // prepend to list and make it selected
+            const list = document.getElementById('studentList');
+            // deselect others
+            document.querySelectorAll('.student-item.selected').forEach(it => it.classList.remove('selected'));
+            list.insertBefore(li, list.firstChild);
+            li.classList.add('selected');
+            li.style.display = 'block';
+            // set selected hidden input
+            document.getElementById('selectedStudentId').value = resp.id;
+            updateSummary(`${resp.firstname} ${resp.lastname}`);
+            // ensure it's visible under the search input
+            li.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            addStudentModal.hide();
+          })
+          .catch(err => {
+            alert('Error adding student: ' + err.message);
+          });
       });
     });
   </script>
