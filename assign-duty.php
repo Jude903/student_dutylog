@@ -29,27 +29,132 @@ $supervisors = $supervisorsStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $studentId = $_POST['student_id'];
-    $dutyType = $_POST['duty_type'];
-    $requiredHours = $_POST['required_hours'];
-    $report_on = $_POST['report_on'];
-    $description = $_POST['description'];
-    $assignedBy = $_POST['assigned_by'];
-    
-    try {
-        $insertQuery = "INSERT INTO duties (student_id, duty_type, required_hours, assigned_by, status) 
-                       VALUES (:student_id, :duty_type, :required_hours, :assigned_by, 'assigned')";
-        $stmt = $pdo->prepare($insertQuery);
-        $stmt->execute([
-            'student_id' => $studentId,
-            'duty_type' => $dutyType,
-            'required_hours' => $requiredHours,
-            'assigned_by' => $assignedBy
-        ]);
+    if (isset($_POST['batch_upload'])) {
+        // Handle batch upload
+        if (isset($_FILES['batch_file']) && $_FILES['batch_file']['error'] === UPLOAD_ERR_OK) {
+            $fileTmpPath = $_FILES['batch_file']['tmp_name'];
+            $fileName = $_FILES['batch_file']['name'];
+            $fileSize = $_FILES['batch_file']['size'];
+            $fileType = $_FILES['batch_file']['type'];
+            
+            // Check if it's a CSV file
+            $allowedExtensions = ['csv'];
+            $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+            
+            if (in_array($fileExtension, $allowedExtensions)) {
+                // Process the CSV file
+                $successCount = 0;
+                $errorCount = 0;
+                $errors = [];
+                
+                // Open the file
+                if (($handle = fopen($fileTmpPath, "r")) !== FALSE) {
+                    // Skip the header row
+                    fgetcsv($handle);
+                    
+                    // Process each row
+                    $rowNumber = 1;
+                    while (($row = fgetcsv($handle)) !== FALSE) {
+                        $rowNumber++;
+                        
+                        // Validate row data
+                        if (count($row) < 6 || empty($row[0]) || empty($row[3]) || empty($row[4])) {
+                            $errors[] = "Row $rowNumber: Incomplete data";
+                            $errorCount++;
+                            continue;
+                        }
+                        
+                        // Extract data from row
+                        $room = trim($row[0]);
+                        $section = trim($row[1]);
+                        $classType = trim($row[2]);
+                        $instructor = trim($row[3]);
+                        $schedule = trim($row[4]);
+                        $subjectCode = trim($row[5]);
+                        
+                        // Find student by section (you might need to adjust this logic)
+                        $studentId = null;
+                        foreach ($students as $student) {
+                            if (strpos($student['name'], $section) !== false) {
+                                $studentId = $student['id'];
+                                break;
+                            }
+                        }
+                        
+                        if (!$studentId) {
+                            $errors[] = "Row $rowNumber: No student found for section " . htmlspecialchars($section);
+                            $errorCount++;
+                            continue;
+                        }
+                        
+                        // Insert into database
+                        try {
+                            $insertQuery = "INSERT INTO duties (student_id, duty_type, required_hours, assigned_by, status, room, section, instructor, schedule, subject_code) 
+                                           VALUES (:student_id, :duty_type, :required_hours, :assigned_by, 'assigned', :room, :section, :instructor, :schedule, :subject_code)";
+                            $stmt = $pdo->prepare($insertQuery);
+                            $stmt->execute([
+                                'student_id' => $studentId,
+                                'duty_type' => 'Student Facilitator',
+                                'required_hours' => 40, // Default value
+                                'assigned_by' => $_SESSION['user_id'],
+                                'room' => $room,
+                                'section' => $section,
+                                'instructor' => $instructor,
+                                'schedule' => $schedule,
+                                'subject_code' => $subjectCode
+                            ]);
+                            
+                            $successCount++;
+                        } catch (PDOException $e) {
+                            $errors[] = "Row $rowNumber: Database error - " . $e->getMessage();
+                            $errorCount++;
+                        }
+                    }
+                    fclose($handle);
+                    
+                    if ($successCount > 0) {
+                        $successMessage = "Successfully uploaded $successCount duties!";
+                    }
+                    
+                    if ($errorCount > 0) {
+                        $errorMessage = "Failed to upload $errorCount duties. " . implode("<br>", array_slice($errors, 0, 5));
+                        if (count($errors) > 5) {
+                            $errorMessage .= "<br>... and " . (count($errors) - 5) . " more errors";
+                        }
+                    }
+                } else {
+                    $errorMessage = "Error opening the uploaded file.";
+                }
+            } else {
+                $errorMessage = "Invalid file type. Please upload a CSV file.";
+            }
+        } else {
+            $errorMessage = "Please select a file to upload.";
+        }
+    } else {
+        // Handle single duty assignment (existing code)
+        $studentId = $_POST['student_id'];
+        $dutyType = $_POST['duty_type'];
+        $requiredHours = $_POST['required_hours'];
+        $report_on = $_POST['report_on'];
+        $description = $_POST['description'];
+        $assignedBy = $_POST['assigned_by'];
         
-        $successMessage = "Duty successfully assigned!";
-    } catch (PDOException $e) {
-        $errorMessage = "Error assigning duty: " . $e->getMessage();
+        try {
+            $insertQuery = "INSERT INTO duties (student_id, duty_type, required_hours, assigned_by, status) 
+                           VALUES (:student_id, :duty_type, :required_hours, :assigned_by, 'assigned')";
+            $stmt = $pdo->prepare($insertQuery);
+            $stmt->execute([
+                'student_id' => $studentId,
+                'duty_type' => $dutyType,
+                'required_hours' => $requiredHours,
+                'assigned_by' => $assignedBy
+            ]);
+            
+            $successMessage = "Duty successfully assigned!";
+        } catch (PDOException $e) {
+            $errorMessage = "Error assigning duty: " . $e->getMessage();
+        }
     }
 }
 ?>
@@ -82,6 +187,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <link href="assets/css/main.css" rel="stylesheet">
   <link href="assets/css/assign-duty.css" rel="stylesheet">
   
+  <style>
+    .batch-upload-btn {
+      margin-top: 15px;
+    }
+    .format-example {
+      background-color: #f8f9fa;
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 15px;
+    }
+    .format-example table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .format-example th, .format-example td {
+      border: 1px solid #dee2e6;
+      padding: 8px;
+      text-align: left;
+    }
+    .format-example th {
+      background-color: #e9ecef;
+    }
+    .download-template {
+      margin-top: 15px;
+    }
+    
+    /* Custom styles for searchable dropdown */
+    .dropdown-menu {
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .duty-search-container {
+      position: relative;
+    }
+    .duty-search-container .form-control {
+      padding-left: 35px;
+    }
+    .duty-search-container .bi {
+      position: absolute;
+      left: 12px;
+      top: 10px;
+      color: #6c757d;
+    }
+  </style>
 </head>
 
 <body class="index-page">
@@ -109,8 +258,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               </ul>
           </li>
             <li><a href="evaluate-student.php">Evaluate Student</a></li>
-            <li><a href="logout.php" class="text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
-          </ul>
+            <li><a href="logout.php">Logout</a></li>          </ul>
           <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
         </nav>
       </div>
@@ -151,7 +299,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
         <?php endif; ?>
         
-        <form method="POST" action="assign-duty.php">
+        <!-- Batch Upload Button -->
+        <div class="text-end mb-4">
+          <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#batchUploadModal">
+            <i class="bi bi-upload me-2"></i>Batch Upload
+          </button>
+        </div>
+        
+        <form method="POST" action="assign-duty.php" enctype="multipart/form-data">
           <div class="row">
             <div class="col-lg-4">
               <div class="assignment-section">
@@ -187,48 +342,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 <div class="form-section">
                   <h5>Duty Type</h5>
-                  <div class="row">
-                    <div class="col-md-6">
-                      <div class="form-check mb-3">
-                        <input class="form-check-input" type="radio" name="duty_type" id="idStation" value="ID Station" required>
-                        <label class="form-check-label" for="idStation">
-                          ID Station
-                        </label>
-                      </div>
-                      <div class="form-check mb-3">
-                        <input class="form-check-input" type="radio" name="duty_type" id="libraryAssistant" value="Library Assistant">
-                        <label class="form-check-label" for="libraryAssistant">
-                          Library Assistant
-                        </label>
-                      </div>
-                      <div class="form-check mb-3">
-                        <input class="form-check-input" type="radio" name="duty_type" id="officeAssistant" value="Office Assistant">
-                        <label class="form-check-label" for="officeAssistant">
-                          Office Assistant
-                        </label>
-                      </div>
-                    </div>
-                    <div class="col-md-6">
-                      <div class="form-check mb-3">
-                        <input class="form-check-input" type="radio" name="duty_type" id="eventSupport" value="Event Support">
-                        <label class="form-check-label" for="eventSupport">
-                          Event Support
-                        </label>
-                      </div>
-                      <div class="form-check mb-3">
-                        <input class="form-check-input" type="radio" name="duty_type" id="labAssistant" value="Lab Assistant">
-                        <label class="form-check-label" for="labAssistant">
-                          Lab Assistant
-                        </label>
-                      </div>
-                      <div class="form-check mb-3">
-                        <input class="form-check-input" type="radio" name="duty_type" id="other" value="Other">
-                        <label class="form-check-label" for="other">
-                          Other
-                        </label>
-                      </div>
-                    </div>
+                  <div class="duty-search-container mb-3">
+                    <i class="bi bi-search"></i>
+                    <input type="text" class="form-control" id="dutySearch" placeholder="Search duty types...">
                   </div>
+                  
+                  <select class="form-select" id="dutyType" name="duty_type" required>
+                    <option value="" selected disabled>Select a duty type</option>
+                    <option value="ID Station">ID Station</option>
+                    <option value="Library Assistant">Library Assistant</option>
+                    <option value="Office Assistant">Office Assistant</option>
+                    <option value="Checker">Checker</option>
+                    <option value="Student Marshall">Student Marshall</option>
+                    <option value="Student Facilitator">Student Facilitator</option>
+                    <option value="Other">Other (Please specify)</option>
+                  </select>
                   
                   <div id="customDutyType" class="mt-3" style="display: none;">
                     <label for="otherDutyType" class="form-label">Specify Duty Type</label>
@@ -282,6 +410,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       </div>
     </section><!-- /Assignment Section -->
+
+    <!-- Batch Upload Modal -->
+    <div class="modal fade" id="batchUploadModal" tabindex="-1" aria-labelledby="batchUploadModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="batchUploadModalLabel">Batch Upload Duties</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p>Upload a CSV file with the following format to assign multiple duties at once:</p>
+            
+            <div class="format-example">
+              <h6>Required Format:</h6>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Room</th>
+                    <th>Section</th>
+                    <th>Class Type (Rad, Flex)</th>
+                    <th>Instructor</th>
+                    <th>Schedule (Time & Date)</th>
+                    <th>Subject Code</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td>Fa-coc-peurto 1</td>
+                    <td>Flex</td>
+                    <td>Mr. Amihan</td>
+                    <td>1-2:30pm Every Thursday</td>
+                    <td>App - 001</td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td>Fa2-ML-Puerto</td>
+                    <td>Flex</td>
+                    <td>Mr.Morales</td>
+                    <td>7-9am Every Friday</td>
+                    <td>ML -101</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            
+            <div class="download-template">
+              <a href="data:text/csv;charset=utf-8,Room,Section,Class Type (Rad, Flex),Instructor,Schedule (Time & Date),Subject Code
+1,Fa-coc-peurto 1,Flex,Mr. Amihan,1-2:30pm Every Thursday,App - 001
+2,Fa2-ML-Puerto,Flex,Mr.Morales,7-9am Every Friday,ML - 101
+3,Fa4-Graduate,Flex,Mr. Amihan,8-10:30am Every Monday,Eng - 001" download="duty_template.csv" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-download me-1"></i>Download CSV Template
+              </a>
+            </div>
+            
+            <div class="mt-4">
+              <form method="POST" action="assign-duty.php" enctype="multipart/form-data" id="batchUploadForm">
+                <input type="hidden" name="batch_upload" value="1">
+                <div class="mb-3">
+                  <label for="batchFile" class="form-label">Select CSV File</label>
+                  <input class="form-control" type="file" id="batchFile" name="batch_file" accept=".csv" required>
+                  <div class="form-text">Only CSV files are accepted. Maximum file size: 2MB</div>
+                </div>
+              </form>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="document.getElementById('batchUploadForm').submit();">Upload File</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
   </main>
 
@@ -400,19 +601,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       });
       
       // Duty type selection
-      document.querySelectorAll('input[name="duty_type"]').forEach(radio => {
-        radio.addEventListener('change', function() {
-          // Show/hide custom duty type field
-          document.getElementById('customDutyType').style.display = 
-            this.value === 'Other' ? 'block' : 'none';
-            
-          // Update summary if a student is selected
-          if (selectedStudentId) {
-            const studentItem = document.querySelector('.student-item.selected');
-            const studentName = studentItem.querySelector('h6').textContent;
-            updateSummary(studentName, this.value);
+      const dutyTypeSelect = document.getElementById('dutyType');
+      dutyTypeSelect.addEventListener('change', function() {
+        // Show/hide custom duty type field
+        document.getElementById('customDutyType').style.display = 
+          this.value === 'Other' ? 'block' : 'none';
+          
+        // Update summary if a student is selected
+        if (selectedStudentId) {
+          const studentItem = document.querySelector('.student-item.selected');
+          const studentName = studentItem.querySelector('h6').textContent;
+          updateSummary(studentName, this.value);
+        }
+      });
+      
+      // Duty type search functionality
+      const dutySearch = document.getElementById('dutySearch');
+      dutySearch.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const options = dutyTypeSelect.options;
+        
+        for (let i = 0; i < options.length; i++) {
+          const option = options[i];
+          if (option.text.toLowerCase().includes(searchTerm)) {
+            option.style.display = '';
+          } else {
+            option.style.display = 'none';
           }
-        });
+        }
       });
       
       // Hours input change
@@ -420,8 +636,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (selectedStudentId) {
           const studentItem = document.querySelector('.student-item.selected');
           const studentName = studentItem.querySelector('h6').textContent;
-          const dutyType = document.querySelector('input[name="duty_type"]:checked');
-          updateSummary(studentName, dutyType ? dutyType.value : null, this.value);
+          const dutyType = dutyTypeSelect.value;
+          updateSummary(studentName, dutyType, this.value);
         }
       });
       
@@ -433,14 +649,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           return;
         }
         
-        const dutyTypeEl = document.querySelector('input[name="duty_type"]:checked');
-        if (!dutyTypeEl) {
+        if (!dutyTypeSelect.value) {
           e.preventDefault();
           alert('Please select a duty type.');
           return;
         }
         
-        if (dutyTypeEl.value === 'Other') {
+        if (dutyTypeSelect.value === 'Other') {
           const customDutyType = document.getElementById('otherDutyType').value;
           if (!customDutyType) {
             e.preventDefault();
