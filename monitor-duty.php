@@ -183,6 +183,25 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_duty_details' && isset($_
             </li>
             <?php endif; ?>
 
+            <?php
+            // Create Accounts dropdown - show only accessible options
+            $createOptions = [];
+            if (hasAccess($userRole, 'create-student')) $createOptions[] = ['url' => 'create-student.php', 'text' => 'Create Student'];
+            if (hasAccess($userRole, 'create-instructor')) $createOptions[] = ['url' => 'create-instructor.php', 'text' => 'Create Instructor'];
+            if (hasAccess($userRole, 'create-employee')) $createOptions[] = ['url' => 'create-employee.php', 'text' => 'Create Employee'];
+
+            if (!empty($createOptions)):
+            ?>
+            <li class="dropdown">
+              <a href="#">Create Accounts</a>
+              <ul class="dropdown-menu">
+                <?php foreach ($createOptions as $option): ?>
+                <li><a href="<?php echo $option['url']; ?>"><?php echo $option['text']; ?></a></li>
+                <?php endforeach; ?>
+              </ul>
+            </li>
+            <?php endif; ?>
+
             <?php if (hasAccess($userRole, 'evaluate-student')): ?>
             <li><a href="evaluate-student.php">Evaluate Student</a></li>
             <?php endif; ?>
