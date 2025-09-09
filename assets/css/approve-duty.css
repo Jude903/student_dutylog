@@ -1,0 +1,160 @@
+
+    :root {
+      --primary-color: #2c3e50;
+      --secondary-color: #3498db;
+      --success-color: #27ae60;
+      --warning-color: #f39c12;
+      --danger-color: #e74c3c;
+      --light-color: #f8f9fa;
+      --dark-color: #343a40;
+    }
+    
+    .filter-section {
+      background-color: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .duty-card {
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+      margin-bottom: 20px;
+      border-left: 4px solid #6c757d;
+      background: white;
+    }
+    
+    .duty-card.pending {
+      border-left-color: var(--warning-color);
+    }
+    
+    .duty-card.approved {
+      border-left-color: var(--success-color);
+    }
+    
+    .duty-card.rejected {
+      border-left-color: var(--danger-color);
+    }
+    
+    .status-badge {
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    
+    .status-pending {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+    
+    .status-approved {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    
+    .status-rejected {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    
+    .student-info {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    .student-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: var(--secondary-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    
+    .modal-content {
+      border-radius: 10px;
+      border: none;
+      box-shadow: 0 5px 25px rgba(0,0,0,0.15);
+    }
+    
+    .modal-header {
+      background-color: var(--primary-color);
+      color: white;
+      border-top-left-radius: 10px;
+      border-top-right-radius: 10px;
+    }
+    
+    .details-row {
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .time-badge {
+      background-color: #e9ecef;
+      padding: 5px 10px;
+      border-radius: 15px;
+      font-size: 0.85rem;
+    }
+    
+    .remarks-section {
+      background-color: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+    }
+    
+    .btn-approve {
+      background-color: var(--success-color);
+      border-color: var(--success-color);
+    }
+    
+    .btn-reject {
+      background-color: var(--danger-color);
+      border-color: var(--danger-color);
+    }
+    
+    .btn-approve:hover {
+      background-color: #219653;
+      border-color: #219653;
+    }
+    
+    .btn-reject:hover {
+      background-color: #c0392b;
+      border-color: #c0392b;
+    }
+    
+    .stats-card {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+      color: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    
+    .stats-number {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0;
+    }
+    
+    .stats-label {
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
