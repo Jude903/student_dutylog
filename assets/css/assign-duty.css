@@ -29,8 +29,7 @@
       box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     }
     .summary-card {
-      background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-      color: white;
+      color: black;
       border-radius: 8px;
       padding: 20px;
       margin-bottom: 20px;
@@ -47,4 +46,120 @@
     }
     .alert {
       margin-bottom: 20px;
+    }
+     .searchable-dropdown {
+      position: relative;
+      width: 100%;
+    }
+
+    .searchable-dropdown .dropdown-input {
+      width: 100%;
+      padding: 0.375rem 0.75rem;
+      border: 1px solid #ced4da;
+      border-radius: 0.375rem;
+      background-color: #fff;
+      cursor: pointer;
+    }
+
+    .searchable-dropdown .dropdown-options {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #ced4da;
+      border-top: none;
+      border-radius: 0 0 0.375rem 0.375rem;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 1000;
+      display: none;
+    }
+
+    .searchable-dropdown .dropdown-option {
+      padding: 0.5rem 0.75rem;
+      cursor: pointer;
+      border-bottom: 1px solid #f8f9fa;
+    }
+
+    .searchable-dropdown .dropdown-option:hover {
+      background-color: #f8f9fa;
+    }
+
+    .searchable-dropdown .dropdown-option.selected {
+      background-color: #007bff;
+      color: white;
+    }
+
+    .searchable-dropdown .dropdown-option:last-child {
+      border-bottom: none;
+    }
+
+    .searchable-dropdown.open .dropdown-options {
+      display: block;
+    }
+
+    .searchable-dropdown .search-input {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border: none;
+      outline: none;
+      border-bottom: 1px solid #ced4da;
+    }
+    
+    /* Batch upload button styles */
+    .batch-upload-btn {
+      background-color: #007bff;
+      border: none;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+    
+    .batch-upload-btn:hover {
+      background-color: #0056b3;
+      transform: translateY(-2px);
+      color: white;
+    }
+    
+    /* Modal styles */
+    .modal-header {
+      background-color: #007bff;
+      color: white;
+      border-bottom: none;
+    }
+    
+    .modal-header .btn-close {
+      filter: invert(1);
+    }
+    
+    .format-table {
+      font-size: 0.9rem;
+    }
+    
+    .format-table th {
+      background-color: #f8f9fa;
+      font-weight: 600;
+      border-color: #dee2e6;
+    }
+    
+    .upload-area {
+      border: 2px dashed #dee2e6;
+      border-radius: 8px;
+      padding: 2rem;
+      text-align: center;
+      background-color: #f8f9fa;
+      transition: all 0.3s ease;
+    }
+    
+    .upload-area:hover {
+      border-color: #007bff;
+      background-color: #e7f3ff;
+    }
+    
+    .upload-area.dragover {
+      border-color: #007bff;
+      background-color: #e7f3ff;
     }

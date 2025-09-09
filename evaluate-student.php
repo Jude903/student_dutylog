@@ -212,8 +212,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <li><a href="evaluate-student.php">Evaluate Student</a></li>
             <?php endif; ?>
 
-            <li><a href="logout.php" class="text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
-          </ul>
+            <li><a href="logout.php"> Logout</a></li>          </ul>
           <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
         </nav>
       </div>
