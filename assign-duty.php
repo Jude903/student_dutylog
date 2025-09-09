@@ -29,28 +29,36 @@ $supervisors = $supervisorsStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $studentId = $_POST['student_id'];
-    $dutyType = $_POST['duty_type'];
-    $requiredHours = $_POST['required_hours'];
-    $deadline = $_POST['deadline'];
-    $description = $_POST['description'];
-    $assignedBy = $_POST['assigned_by'];
-    
-    try {
-        $insertQuery = "INSERT INTO duties (student_id, duty_type, required_hours, assigned_by, status) 
-                       VALUES (:student_id, :duty_type, :required_hours, :assigned_by, 'assigned')";
-        $stmt = $pdo->prepare($insertQuery);
-        $stmt->execute([
-            'student_id' => $studentId,
-            'duty_type' => $dutyType,
-            'required_hours' => $requiredHours,
-            'assigned_by' => $assignedBy
-        ]);
-        
-        $successMessage = "Duty successfully assigned!";
-    } catch (PDOException $e) {
-        $errorMessage = "Error assigning duty: " . $e->getMessage();
-    }
+  $studentId = $_POST['student_id'] ?? null;
+  $dutyType = $_POST['duty_type'] ?? null;
+  $customDuty = trim($_POST['custom_duty_type'] ?? '');
+  $requiredHours = $_POST['required_hours'] ?? null;
+  $deadline = $_POST['deadline'] ?? null;
+  $assignedBy = $_POST['assigned_by'] ?? null;
+  $semester = $_POST['semester'] ?? '1st';
+
+  // If 'Other' was selected and custom text provided, use it as duty type
+  if ($dutyType === 'Other' && $customDuty !== '') {
+    $dutyType = $customDuty;
+  }
+
+  try {
+  // Insert duty including semester. Description is intentionally not saved server-side.
+  $insertQuery = "INSERT INTO duties (student_id, duty_type, required_hours, assigned_by, deadline, semester, status) VALUES (:student_id, :duty_type, :required_hours, :assigned_by, :deadline, :semester, 'assigned')";
+    $stmt = $pdo->prepare($insertQuery);
+    $stmt->execute([
+      'student_id' => $studentId,
+      'duty_type' => $dutyType,
+      'required_hours' => $requiredHours,
+      'assigned_by' => $assignedBy,
+      'deadline' => $deadline,
+      'semester' => $semester
+    ]);
+
+    $successMessage = "Duty successfully assigned!";
+  } catch (PDOException $e) {
+    $errorMessage = "Error assigning duty: " . $e->getMessage();
+  }
 }
 ?>
 <!DOCTYPE html>
@@ -207,7 +215,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <div class="assignment-section">
                 <h3 class="section-title">Select Student</h3>
                 <div class="form-group mb-3">
-                  <input type="text" class="form-control" id="studentSearch" placeholder="Search students...">
+                  <div class="input-group">
+                    <input type="text" class="form-control" id="studentSearch" placeholder="Search students...">
+                    <button class="btn btn-outline-primary" type="button" id="openAddStudent">Add Student</button>
+                  </div>
                 </div>
                 <div class="student-list" id="studentList">
                   <?php foreach ($students as $student): ?>
@@ -231,7 +242,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             <div class="col-lg-8">
               <div class="duty-details">
-                <h3 class="section-title">Duty Information</h3>
+                <div class="d-flex justify-content-between align-items-center">
+                  <h3 class="section-title mb-0">Duty Information</h3>
+                  <div id="semesterReminder" class="mt-1 small fw-bold text-primary">Assigning for: 1st Semester</div>
+                  <div class="ms-3 text-end">
+                    <label for="semesterSelect" class="form-label mb-0 small text-muted">Semester</label>
+                    <select id="semesterSelect" name="semester" class="form-select form-select-sm">
+                      <option value="1st">1st Sem</option>
+                      <option value="2nd">2nd Sem</option>
+                    </select>
+                    <!-- <div id="semesterReminder" class="mt-1 small fw-bold text-primary">Assigning for: 1st Semester</div> -->
+                  </div>
+                </div>
                 
                 <input type="hidden" id="selectedStudentId" name="student_id">
                 
@@ -415,6 +437,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <!-- Main JS File -->
   <script src="assets/js/main.js"></script>
 
+  <!-- Add Student Modal -->
+  <div class="modal fade" id="addStudentModal" tabindex="-1" aria-labelledby="addStudentLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addStudentLabel">Add New Student</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="addStudentForm">
+            <div class="row g-2">
+              <div class="col-md-4"><input class="form-control" name="firstname" placeholder="First name" required></div>
+              <div class="col-md-4"><input class="form-control" name="middlename" placeholder="Middle name"></div>
+              <div class="col-md-4"><input class="form-control" name="lastname" placeholder="Last name" required></div>
+            </div>
+            <div class="row g-2 mt-2">
+              <div class="col-md-4"><input class="form-control" name="year_level" placeholder="Year level"></div>
+              <div class="col-md-4"><input class="form-control" name="gmail" placeholder="Gmail" required></div>
+              <div class="col-md-4"><input class="form-control" name="course" placeholder="Course"></div>
+            </div>
+            <div class="row g-2 mt-2">
+              <div class="col-md-4"><select class="form-select" name="semester"><option value="1st">1st</option><option value="2nd">2nd</option></select></div>
+              <div class="col-md-4"><input class="form-control" name="school_year" placeholder="School Year (e.g. 2024-2025)"></div>
+              <div class="col-md-4">
+                <select class="form-select" name="scholarship">
+                  <option value="25%">25%</option>
+                  <option value="50%">50%</option>
+                  <option value="75%">75%</option>
+                </select>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="submitAddStudent">Add Student</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       // Set default deadline to two weeks from now
@@ -422,7 +485,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       defaultDeadline.setDate(defaultDeadline.getDate() + 14);
       document.getElementById('deadline').valueAsDate = defaultDeadline;
       
-      // Student selection
+  // Student selection
       let selectedStudentId = null;
       const studentList = document.getElementById('studentList');
       studentList.addEventListener('click', function(e) {
@@ -478,6 +541,141 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           updateSummary(studentName, dutyType ? dutyType.value : null, this.value);
         }
       });
+
+      // ---------- Semester-specific state handling ----------
+      const semesterSelect = document.getElementById('semesterSelect');
+      // Initialize semester state for 1st and 2nd sem
+      const semesterState = {
+        '1st': {
+          duty_type: null,
+          custom_duty_type: '',
+          required_hours: document.getElementById('requiredHours').value || '',
+          deadline: document.getElementById('deadline').value || '',
+          description: document.getElementById('dutyDescription').value || '',
+          assigned_by: document.getElementById('supervisor').value || '',
+          supervisor_notes: document.getElementById('supervisorNotes').value || ''
+        },
+        '2nd': {
+          duty_type: null,
+          custom_duty_type: '',
+          required_hours: document.getElementById('requiredHours').value || '',
+          deadline: document.getElementById('deadline').value || '',
+          description: document.getElementById('dutyDescription').value || '',
+          assigned_by: document.getElementById('supervisor').value || '',
+          supervisor_notes: document.getElementById('supervisorNotes').value || ''
+        }
+      };
+
+      // Current selected semester key
+      let currentSemester = semesterSelect.value || '1st';
+
+      // Semester reminder element
+      const semesterReminder = document.getElementById('semesterReminder');
+      function updateSemesterReminder(sem) {
+        const label = (sem === '1st') ? '1st Semester' : '2nd Semester';
+        semesterReminder.textContent = `Assigning for: ${label}`;
+      }
+
+      // Save current inputs into semesterState[currentSemester]
+      function saveCurrentSemester() {
+        const dutyTypeEl = document.querySelector('input[name="duty_type"]:checked');
+        semesterState[currentSemester].duty_type = dutyTypeEl ? dutyTypeEl.value : null;
+        semesterState[currentSemester].custom_duty_type = document.getElementById('otherDutyType').value || '';
+        semesterState[currentSemester].required_hours = document.getElementById('requiredHours').value || '';
+        semesterState[currentSemester].deadline = document.getElementById('deadline').value || '';
+        semesterState[currentSemester].description = document.getElementById('dutyDescription').value || '';
+        semesterState[currentSemester].assigned_by = document.getElementById('supervisor').value || '';
+        semesterState[currentSemester].supervisor_notes = document.getElementById('supervisorNotes').value || '';
+      }
+
+      // Load semester values into the form
+      function loadSemester(sem) {
+        const state = semesterState[sem];
+        // duty type radios
+        if (state.duty_type) {
+          const radio = document.querySelector('input[name="duty_type"][value="' + state.duty_type + '"]');
+          if (radio) radio.checked = true;
+          // if value is not one of the radios (custom), check 'Other'
+          if (!radio && state.duty_type !== null) {
+            const otherRadio = document.querySelector('input[name="duty_type"][value="Other"]');
+            if (otherRadio) otherRadio.checked = true;
+          }
+        } else {
+          document.querySelectorAll('input[name="duty_type"]').forEach(r => r.checked = false);
+        }
+        document.getElementById('otherDutyType').value = state.custom_duty_type || '';
+        document.getElementById('requiredHours').value = state.required_hours || '';
+        document.getElementById('deadline').value = state.deadline || document.getElementById('deadline').value;
+        document.getElementById('dutyDescription').value = state.description || '';
+        document.getElementById('supervisor').value = state.assigned_by || document.getElementById('supervisor').value;
+        document.getElementById('supervisorNotes').value = state.supervisor_notes || '';
+
+        // Show custom field if duty_type is Other
+        const currentDutyType = state.duty_type;
+        document.getElementById('customDutyType').style.display = (currentDutyType === 'Other') ? 'block' : 'none';
+      }
+
+      // Wire up inputs to update semesterState live
+      ['requiredHours','deadline','dutyDescription','supervisor','supervisorNotes','otherDutyType'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('input', function() {
+          semesterState[currentSemester][mapIdToKey(id)] = this.value;
+        });
+      });
+
+      // Map element id to state key
+      function mapIdToKey(id) {
+        if (id === 'requiredHours') return 'required_hours';
+        if (id === 'dutyDescription') return 'description';
+        if (id === 'supervisorNotes') return 'supervisor_notes';
+        if (id === 'otherDutyType') return 'custom_duty_type';
+        return id;
+      }
+
+      // duty radio buttons update state on change
+      document.querySelectorAll('input[name="duty_type"]').forEach(r => {
+        r.addEventListener('change', function() {
+          semesterState[currentSemester].duty_type = this.value;
+          // Show/hide custom input
+          document.getElementById('customDutyType').style.display = (this.value === 'Other') ? 'block' : 'none';
+          // If Other not selected, clear the custom field for this semester
+          if (this.value !== 'Other') semesterState[currentSemester].custom_duty_type = '';
+        });
+      });
+
+      // supervisor select change
+      document.getElementById('supervisor').addEventListener('change', function() {
+        semesterState[currentSemester].assigned_by = this.value;
+      });
+
+      // Semester select change handler
+      semesterSelect.addEventListener('change', function() {
+        // save previous
+        saveCurrentSemester();
+        // switch
+        currentSemester = this.value;
+        loadSemester(currentSemester);
+  updateSemesterReminder(currentSemester);
+        // update summary if a student is selected
+        if (selectedStudentId) {
+          const studentItem = document.querySelector('.student-item.selected');
+          const studentName = studentItem.querySelector('h6').textContent;
+          const dutyType = semesterState[currentSemester].duty_type;
+          const hours = semesterState[currentSemester].required_hours;
+          updateSummary(studentName, dutyType, hours);
+        }
+      });
+
+      // Ensure initial load for default semester
+      loadSemester(currentSemester);
+  updateSemesterReminder(currentSemester);
+
+      // When page is about to submit, save current semester values
+      document.querySelector('form').addEventListener('submit', function() {
+        saveCurrentSemester();
+      });
+      // ---------- end semester handling ----------
       
       // Form submission validation
       document.querySelector('form').addEventListener('submit', function(e) {
@@ -533,6 +731,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         summaryEl.innerHTML = html;
       }
+
+      // ---- Add student modal handling ----
+      const addStudentModalEl = document.getElementById('addStudentModal');
+      const addStudentModal = new bootstrap.Modal(addStudentModalEl);
+      document.getElementById('openAddStudent').addEventListener('click', function() {
+        document.getElementById('addStudentForm').reset();
+        addStudentModal.show();
+      });
+
+      document.getElementById('submitAddStudent').addEventListener('click', function() {
+        const form = document.getElementById('addStudentForm');
+        const data = new FormData(form);
+        // Basic client-side validation
+        if (!data.get('firstname') || !data.get('lastname') || !data.get('gmail')) {
+          alert('Please provide firstname, lastname and gmail');
+          return;
+        }
+
+        fetch('add-student.php', { method: 'POST', body: data })
+          .then(r => r.json())
+          .then(resp => {
+            if (!resp.success) throw new Error(resp.message || 'Failed');
+            // Add new student to the list UI
+            const li = document.createElement('div');
+            li.className = 'student-item selected';
+            li.dataset.id = resp.id;
+            li.innerHTML = `<h6 class="mb-1">${resp.firstname} ${resp.lastname}</h6><small class="text-muted">${resp.gmail}</small>`;
+            // deselect others
+            document.querySelectorAll('.student-item.selected').forEach(it => it.classList.remove('selected'));
+            // prepend to list
+            const list = document.getElementById('studentList');
+            list.insertBefore(li, list.firstChild);
+            // set selected
+            li.classList.add('selected');
+            document.getElementById('selectedStudentId').value = resp.id;
+            updateSummary(`${resp.firstname} ${resp.lastname}`);
+            addStudentModal.hide();
+          })
+          .catch(err => {
+            alert('Error adding student: ' + err.message);
+          });
+      });
     });
   </script>
 

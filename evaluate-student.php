@@ -16,7 +16,6 @@ header("Pragma: no-cache");
 // Rest of your protected page content
 // ...
 require_once 'config/config.php';
-session_start();
 
 // Check if user is logged in as an instructor
 // if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'instructor') {
