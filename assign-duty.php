@@ -17,8 +17,9 @@ header("Pragma: no-cache");
 // ...
 require_once 'config/config.php';
 
-// Fetch students from database
-$studentsQuery = "SELECT id, username as name, email, department as program FROM users WHERE role = 'student'";
+// Fetch students from student_info so modal-created students appear in the list
+// Map columns to the same keys the template expects: id, name, email, program
+$studentsQuery = "SELECT student_id AS id, CONCAT(firstname, ' ', lastname) AS name, gmail AS email, course AS program FROM student_info ORDER BY lastname, firstname";
 $studentsStmt = $pdo->query($studentsQuery);
 $students = $studentsStmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -780,18 +781,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!resp.success) throw new Error(resp.message || 'Failed');
             // Add new student to the list UI
             const li = document.createElement('div');
-            li.className = 'student-item selected';
+            li.className = 'student-item';
             li.dataset.id = resp.id;
             li.innerHTML = `<h6 class="mb-1">${resp.firstname} ${resp.lastname}</h6><small class="text-muted">${resp.gmail}</small>`;
+
+            // Clear search so the new item is visible immediately
+            const searchEl = document.getElementById('studentSearch');
+            if (searchEl) {
+              searchEl.value = '';
+              // trigger input handler to refresh visibility
+              searchEl.dispatchEvent(new Event('input'));
+            }
+
+            // prepend to list and make it selected
+            const list = document.getElementById('studentList');
             // deselect others
             document.querySelectorAll('.student-item.selected').forEach(it => it.classList.remove('selected'));
-            // prepend to list
-            const list = document.getElementById('studentList');
             list.insertBefore(li, list.firstChild);
-            // set selected
             li.classList.add('selected');
+            li.style.display = 'block';
+            // set selected hidden input
             document.getElementById('selectedStudentId').value = resp.id;
             updateSummary(`${resp.firstname} ${resp.lastname}`);
+            // ensure it's visible under the search input
+            li.scrollIntoView({ behavior: 'smooth', block: 'center' });
             addStudentModal.hide();
           })
           .catch(err => {
