@@ -141,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'student' => ['home', 'dashboard', 'log-duty', 'view-duty'],
                 'instructor' => ['home', 'dashboard', 'approve-duty', 'monitor-duty', 'evaluate-student'],
                 'scholarship_officer' => ['home', 'dashboard', 'assign-duty', 'approve-duty', 'monitor-duty', 'evaluate-student'],
-                'superadmin' => ['home', 'dashboard', 'assign-duty', 'approve-duty', 'log-duty', 'view-duty', 'monitor-duty', 'evaluate-student']
+                'superadmin' => ['home', 'dashboard', 'assign-duty', 'approve-duty', 'log-duty', 'view-duty', 'monitor-duty', 'evaluate-student', 'create-student', 'create-instructor', 'create-employee']
             ];
 
             return in_array($page, $accessMatrix[$userRole] ?? []);

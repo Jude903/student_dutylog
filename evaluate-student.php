@@ -151,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'student' => ['home', 'dashboard', 'log-duty', 'view-duty'],
                 'instructor' => ['home', 'dashboard', 'approve-duty', 'monitor-duty', 'evaluate-student'],
                 'scholarship_officer' => ['home', 'dashboard', 'assign-duty', 'approve-duty', 'monitor-duty', 'evaluate-student'],
-                'superadmin' => ['home', 'dashboard', 'assign-duty', 'approve-duty', 'log-duty', 'view-duty', 'monitor-duty', 'evaluate-student']
+                'superadmin' => ['home', 'dashboard', 'assign-duty', 'approve-duty', 'log-duty', 'view-duty', 'monitor-duty', 'evaluate-student', 'create-student', 'create-instructor', 'create-employee']
             ];
 
             return in_array($page, $accessMatrix[$userRole] ?? []);
@@ -183,6 +183,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <a href="#">Duty Options</a>
               <ul class="dropdown-menu">
                 <?php foreach ($dutyOptions as $option): ?>
+                <li><a href="<?php echo $option['url']; ?>"><?php echo $option['text']; ?></a></li>
+                <?php endforeach; ?>
+              </ul>
+            </li>
+            <?php endif; ?>
+
+            <?php
+            // Create Accounts dropdown - show only accessible options
+            $createOptions = [];
+            if (hasAccess($userRole, 'create-student')) $createOptions[] = ['url' => 'create-student.php', 'text' => 'Create Student'];
+            if (hasAccess($userRole, 'create-instructor')) $createOptions[] = ['url' => 'create-instructor.php', 'text' => 'Create Instructor'];
+            if (hasAccess($userRole, 'create-employee')) $createOptions[] = ['url' => 'create-employee.php', 'text' => 'Create Employee'];
+
+            if (!empty($createOptions)):
+            ?>
+            <li class="dropdown">
+              <a href="#">Create Accounts</a>
+              <ul class="dropdown-menu">
+                <?php foreach ($createOptions as $option): ?>
                 <li><a href="<?php echo $option['url']; ?>"><?php echo $option['text']; ?></a></li>
                 <?php endforeach; ?>
               </ul>

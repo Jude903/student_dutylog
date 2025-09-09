@@ -24,6 +24,18 @@ header("Pragma: no-cache");
 // ...
 require_once 'config/config.php';
 
+// Function to check if user has access to a specific page
+function hasAccess($userRole, $page) {
+    $accessMatrix = [
+        'student' => ['home', 'dashboard', 'log-duty', 'view-duty'],
+        'instructor' => ['home', 'dashboard', 'approve-duty', 'monitor-duty', 'evaluate-student'],
+        'scholarship_officer' => ['home', 'dashboard', 'assign-duty', 'approve-duty', 'monitor-duty', 'evaluate-student'],
+        'superadmin' => ['home', 'dashboard', 'assign-duty', 'approve-duty', 'log-duty', 'view-duty', 'monitor-duty', 'evaluate-student', 'create-student', 'create-instructor', 'create-employee']
+    ];
+
+    return in_array($page, $accessMatrix[$userRole] ?? []);
+}
+
 // Fetch statistics for the homepage
 $statsQuery = "SELECT
     (SELECT COUNT(*) FROM users WHERE role = 'student') as total_students,
@@ -71,26 +83,59 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
           <h1 class="sitename">CSDL Admin</h1>
         </a>
 
-<nav id="navmenu" class="navmenu">
-  <ul>
-    <li><a href="index_admin.php" class="active">Home</a></li>
-    <li><a href="dashboard.php">Dashboard</a></li>
-    <li class="dropdown">
-      <a href="#">Duty Options</a>
-      <ul class="dropdown-menu">
-        <li><a href="assign-duty.php">Assign Duty</a></li>
-        <li><a href="approve-duty.php">Approve Duty</a></li>
-        <li><a href="log-duty.php">Log Duty</a></li>
-        <li><a href="view-duty.php">View Duty</a></li>
-        <li><a href="monitor-duty.php">Monitor Duty</a></li>
-      </ul>
-    </li>
-    <li><a href="evaluate-student.php">Evaluate Student</a></li>
-    <!-- ✅ Logout Button -->
-    <li><a href="logout.php" class="text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
-  </ul>
-  <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
-</nav>
+        <nav id="navmenu" class="navmenu">
+          <ul>
+            <li><a href="index_admin.php" class="active">Home</a></li>
+            <li><a href="dashboard.php">Dashboard</a></li>
+
+            <?php
+            // Duty Options dropdown - show only accessible options
+            $dutyOptions = [];
+            if (hasAccess($_SESSION['role'], 'assign-duty')) $dutyOptions[] = ['url' => 'assign-duty.php', 'text' => 'Assign Duty'];
+            if (hasAccess($_SESSION['role'], 'approve-duty')) $dutyOptions[] = ['url' => 'approve-duty.php', 'text' => 'Approve Duty'];
+            if (hasAccess($_SESSION['role'], 'log-duty')) $dutyOptions[] = ['url' => 'log-duty.php', 'text' => 'Log Duty'];
+            if (hasAccess($_SESSION['role'], 'view-duty')) $dutyOptions[] = ['url' => 'view-duty.php', 'text' => 'View Duty'];
+            if (hasAccess($_SESSION['role'], 'monitor-duty')) $dutyOptions[] = ['url' => 'monitor-duty.php', 'text' => 'Monitor Duty'];
+
+            if (!empty($dutyOptions)):
+            ?>
+            <li class="dropdown">
+              <a href="#">Duty Options</a>
+              <ul class="dropdown-menu">
+                <?php foreach ($dutyOptions as $option): ?>
+                <li><a href="<?php echo $option['url']; ?>"><?php echo $option['text']; ?></a></li>
+                <?php endforeach; ?>
+              </ul>
+            </li>
+            <?php endif; ?>
+
+            <?php
+            // Create Accounts dropdown - show only accessible options
+            $createOptions = [];
+            if (hasAccess($_SESSION['role'], 'create-student')) $createOptions[] = ['url' => 'create-student.php', 'text' => 'Create Student'];
+            if (hasAccess($_SESSION['role'], 'create-instructor')) $createOptions[] = ['url' => 'create-instructor.php', 'text' => 'Create Instructor'];
+            if (hasAccess($_SESSION['role'], 'create-employee')) $createOptions[] = ['url' => 'create-employee.php', 'text' => 'Create Employee'];
+
+            if (!empty($createOptions)):
+            ?>
+            <li class="dropdown">
+              <a href="#">Create Accounts</a>
+              <ul class="dropdown-menu">
+                <?php foreach ($createOptions as $option): ?>
+                <li><a href="<?php echo $option['url']; ?>"><?php echo $option['text']; ?></a></li>
+                <?php endforeach; ?>
+              </ul>
+            </li>
+            <?php endif; ?>
+
+            <?php if (hasAccess($_SESSION['role'], 'evaluate-student')): ?>
+            <li><a href="evaluate-student.php">Evaluate Student</a></li>
+            <?php endif; ?>
+
+            <li><a href="logout.php" class="text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+          </ul>
+          <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+        </nav>
       </div>
     </div>
   </header>

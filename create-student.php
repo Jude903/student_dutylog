@@ -14,42 +14,29 @@ header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma: no-cache");
 
 // Rest of your protected page content
-// ...
 require_once 'config/config.php';
-
-// Fetch students from database
-$studentsQuery = "SELECT id, username as name, email, department as program FROM users WHERE role = 'student'";
-$studentsStmt = $pdo->query($studentsQuery);
-$students = $studentsStmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Fetch supervisors (scholarship officers and admins)
-$supervisorsQuery = "SELECT id, username as name FROM users WHERE role IN ('scholarship_officer', 'superadmin')";
-$supervisorsStmt = $pdo->query($supervisorsQuery);
-$supervisors = $supervisorsStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $studentId = $_POST['student_id'];
-    $dutyType = $_POST['duty_type'];
-    $requiredHours = $_POST['required_hours'];
-    $report_on = $_POST['report_on'];
-    $description = $_POST['description'];
-    $assignedBy = $_POST['assigned_by'];
+    $username = $_POST['username'];
+    $email = $_POST['email'];
+    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+    $department = $_POST['department'];
     
     try {
-        $insertQuery = "INSERT INTO duties (student_id, duty_type, required_hours, assigned_by, status) 
-                       VALUES (:student_id, :duty_type, :required_hours, :assigned_by, 'assigned')";
+        $insertQuery = "INSERT INTO users (username, email, password, role, department) 
+                       VALUES (:username, :email, :password, 'student', :department)";
         $stmt = $pdo->prepare($insertQuery);
         $stmt->execute([
-            'student_id' => $studentId,
-            'duty_type' => $dutyType,
-            'required_hours' => $requiredHours,
-            'assigned_by' => $assignedBy
+            'username' => $username,
+            'email' => $email,
+            'password' => $password,
+            'department' => $department
         ]);
         
-        $successMessage = "Duty successfully assigned!";
+        $successMessage = "Student account created successfully!";
     } catch (PDOException $e) {
-        $errorMessage = "Error assigning duty: " . $e->getMessage();
+        $errorMessage = "Error creating student account: " . $e->getMessage();
     }
 }
 ?>
@@ -106,14 +93,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         ?>
 
-        <a href="index_user.php" class="logo d-flex align-items-center">
+        <a href="index_admin.php" class="logo d-flex align-items-center">
           <img src="assets/img/CSDL logo.png" alt="">
           <h1 class="sitename">CSDL</h1>
         </a>
 
         <nav id="navmenu" class="navmenu">
           <ul>
-            <li><a href="index_user.php">Home</a></li>
+            <li><a href="index_admin.php">Home</a></li>
             <li><a href="dashboard.php">Dashboard</a></li>
 
             <?php
@@ -174,18 +161,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- Page Title -->
     <div class="page-title light-background">
       <div class="container d-lg-flex justify-content-between align-items-center">
-        <h1 class="mb-2 mb-lg-0">Assign Duty</h1>
+        <h1 class="mb-2 mb-lg-0">Create Student Account</h1>
         <nav class="breadcrumbs">
           <ol>
             <li><a href="index.php">Home</a></li>
-            <li class="current">Assign Duty</li>
+            <li class="current">Create Student</li>
           </ol>
         </nav>
       </div>
     </div><!-- End Page Title -->
 
-    <!-- Assignment Section -->
-    <section id="assignment" class="assignment section">
+    <!-- Create Section -->
+    <section id="create" class="assignment section">
       <div class="container" data-aos="fade-up" data-aos-delay="100">
         
         <?php if (isset($successMessage)): ?>
@@ -202,129 +189,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
         <?php endif; ?>
         
-        <form method="POST" action="assign-duty.php">
+        <form method="POST" action="create-student.php">
           <div class="row">
-            <div class="col-lg-4">
-              <div class="assignment-section">
-                <h3 class="section-title">Select Student</h3>
-                <div class="form-group mb-3">
-                  <input type="text" class="form-control" id="studentSearch" placeholder="Search students...">
-                </div>
-                <div class="student-list" id="studentList">
-                  <?php foreach ($students as $student): ?>
-                  <div class="student-item" data-id="<?php echo $student['id']; ?>">
-                    <h6 class="mb-1"><?php echo htmlspecialchars($student['name']); ?></h6>
-                    <small class="text-muted"><?php echo htmlspecialchars($student['program']); ?> • <?php echo htmlspecialchars($student['email']); ?></small>
-                  </div>
-                  <?php endforeach; ?>
-                </div>
-              </div>
-              
-              <div class="summary-card mt-4">
-                <h4>Duty Summary</h4>
-                <div id="dutySummary">
-                  <p class="mb-1">No student selected</p>
-                  <p class="mb-1">No duty type chosen</p>
-                  <p class="mb-0">0 hours required</p>
-                </div>
-              </div>
-            </div>
-            
-            <div class="col-lg-8">
+            <div class="col-lg-8 offset-lg-2">
               <div class="duty-details">
-                <h3 class="section-title">Duty Information</h3>
-                
-                <input type="hidden" id="selectedStudentId" name="student_id">
+                <h3 class="section-title">Student Account Information</h3>
                 
                 <div class="form-section">
-                  <h5>Duty Type</h5>
+                  <h5>Basic Information</h5>
                   <div class="row">
                     <div class="col-md-6">
-                      <div class="form-check mb-3">
-                        <input class="form-check-input" type="radio" name="duty_type" id="idStation" value="ID Station" required>
-                        <label class="form-check-label" for="idStation">
-                          ID Station
-                        </label>
-                      </div>
-                      <div class="form-check mb-3">
-                        <input class="form-check-input" type="radio" name="duty_type" id="libraryAssistant" value="Library Assistant">
-                        <label class="form-check-label" for="libraryAssistant">
-                          Library Assistant
-                        </label>
-                      </div>
-                      <div class="form-check mb-3">
-                        <input class="form-check-input" type="radio" name="duty_type" id="officeAssistant" value="Office Assistant">
-                        <label class="form-check-label" for="officeAssistant">
-                          Office Assistant
-                        </label>
-                      </div>
+                      <label for="username" class="form-label">Username</label>
+                      <input type="text" class="form-control" id="username" name="username" required>
                     </div>
                     <div class="col-md-6">
-                      <div class="form-check mb-3">
-                        <input class="form-check-input" type="radio" name="duty_type" id="eventSupport" value="Event Support">
-                        <label class="form-check-label" for="eventSupport">
-                          Event Support
-                        </label>
-                      </div>
-                      <div class="form-check mb-3">
-                        <input class="form-check-input" type="radio" name="duty_type" id="labAssistant" value="Lab Assistant">
-                        <label class="form-check-label" for="labAssistant">
-                          Lab Assistant
-                        </label>
-                      </div>
-                      <div class="form-check mb-3">
-                        <input class="form-check-input" type="radio" name="duty_type" id="other" value="Other">
-                        <label class="form-check-label" for="other">
-                          Other
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div id="customDutyType" class="mt-3" style="display: none;">
-                    <label for="otherDutyType" class="form-label">Specify Duty Type</label>
-                    <input type="text" class="form-control" id="otherDutyType" name="custom_duty_type">
-                  </div>
-                </div>
-                
-                <div class="form-section">
-                  <h5>Hours Requirement</h5>
-                  <div class="row">
-                    <div class="col-md-6">
-                      <label for="requiredHours" class="form-label">Required Hours</label>
-                      <input type="number" class="form-control" id="requiredHours" name="required_hours" min="1" value="40" required>
-                    </div>
-                    <div class="col-md-6">
-                      <label for="report_on" class="form-label">Report On</label>
-                      <input type="date" class="form-control" id="report_on" name="report_on" required>
+                      <label for="email" class="form-label">Email</label>
+                      <input type="email" class="form-control" id="email" name="email" required>
                     </div>
                   </div>
                 </div>
                 
                 <div class="form-section">
-                  <h5>Duty Description</h5>
-                  <div class="mb-3">
-                    <label for="dutyDescription" class="form-label">Responsibilities and Tasks</label>
-                    <textarea class="form-control" id="dutyDescription" name="description" rows="4" placeholder="Describe the duties, responsibilities, and expectations..."></textarea>
+                  <h5>Security</h5>
+                  <div class="row">
+                    <div class="col-md-6">
+                      <label for="password" class="form-label">Password</label>
+                      <div class="input-group">
+                        <input type="password" class="form-control" id="password" name="password" required>
+                        <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                          <i class="bi bi-eye" id="passwordIcon"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <label for="confirm_password" class="form-label">Confirm Password</label>
+                      <div class="input-group">
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                        <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword">
+                          <i class="bi bi-eye" id="confirmPasswordIcon"></i>
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 
                 <div class="form-section">
-                  <h5>Supervisor Information</h5>
+                  <h5>Academic Information</h5>
                   <div class="row">
                     <div class="col-md-6">
-                      <label for="supervisor" class="form-label">Assigned By</label>
-                      <select class="form-control" id="supervisor" name="assigned_by" required>
-                        <?php foreach ($supervisors as $supervisor): ?>
-                        <option value="<?php echo $supervisor['id']; ?>"><?php echo htmlspecialchars($supervisor['name']); ?></option>
-                        <?php endforeach; ?>
+                      <label for="department" class="form-label">Department/Program</label>
+                      <select class="form-control" id="department" name="department" required>
+                        <option value="">Select Department</option>
+                        <option value="Engineering & Architecture">Engineering & Architecture</option>
+                        <option value="Business & Accountancy">Business & Accountancy</option>
+                        <option value="Education">Education</option>
+                        <option value="Health Sciences">Health Sciences</option>
+                        <option value="Liberal Arts & Sciences">Liberal Arts & Sciences</option>
+                        <option value="Computer Studies">Computer Studies</option>
                       </select>
                     </div>
                   </div>
                 </div>
                 
                 <div class="d-grid gap-2 mt-4">
-                  <button type="submit" class="btn btn-primary btn-lg" id="assignDutyBtn">Assign Duty</button>
+                  <button type="submit" class="btn btn-primary btn-lg" id="createStudentBtn">Create Student Account</button>
                 </div>
               </div>
             </div>
@@ -332,7 +260,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
 
       </div>
-    </section><!-- /Assignment Section -->
+    </section><!-- /Create Section -->
 
   </main>
 
@@ -414,122 +342,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      // Set default report_on to two weeks from now
-      const defaultReport_on = new Date();
-      defaultReport_on.setDate(defaultReport_on.getDate() + 14);
-      document.getElementById('report_on').valueAsDate = defaultReport_on;
-      
-      // Student selection
-      let selectedStudentId = null;
-      const studentList = document.getElementById('studentList');
-      studentList.addEventListener('click', function(e) {
-        const studentItem = e.target.closest('.student-item');
-        if (studentItem) {
-          // Remove previous selection
-          document.querySelectorAll('.student-item.selected').forEach(item => {
-            item.classList.remove('selected');
-          });
-          
-          // Add selection to clicked item
-          studentItem.classList.add('selected');
-          selectedStudentId = studentItem.dataset.id;
-          document.getElementById('selectedStudentId').value = selectedStudentId;
-          
-          // Update summary
-          const studentName = studentItem.querySelector('h6').textContent;
-          updateSummary(studentName);
-        }
-      });
-      
-      // Student search
-      document.getElementById('studentSearch').addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase();
-        document.querySelectorAll('.student-item').forEach(item => {
-          const studentText = item.textContent.toLowerCase();
-          item.style.display = studentText.includes(searchTerm) ? 'block' : 'none';
-        });
-      });
-      
-      // Duty type selection
-      document.querySelectorAll('input[name="duty_type"]').forEach(radio => {
-        radio.addEventListener('change', function() {
-          // Show/hide custom duty type field
-          document.getElementById('customDutyType').style.display = 
-            this.value === 'Other' ? 'block' : 'none';
-            
-          // Update summary if a student is selected
-          if (selectedStudentId) {
-            const studentItem = document.querySelector('.student-item.selected');
-            const studentName = studentItem.querySelector('h6').textContent;
-            updateSummary(studentName, this.value);
-          }
-        });
-      });
-      
-      // Hours input change
-      document.getElementById('requiredHours').addEventListener('input', function() {
-        if (selectedStudentId) {
-          const studentItem = document.querySelector('.student-item.selected');
-          const studentName = studentItem.querySelector('h6').textContent;
-          const dutyType = document.querySelector('input[name="duty_type"]:checked');
-          updateSummary(studentName, dutyType ? dutyType.value : null, this.value);
-        }
-      });
-      
-      // Form submission validation
+      // Form validation
       document.querySelector('form').addEventListener('submit', function(e) {
-        if (!selectedStudentId) {
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
+
+        if (password !== confirmPassword) {
           e.preventDefault();
-          alert('Please select a student first.');
+          alert('Passwords do not match.');
           return;
-        }
-        
-        const dutyTypeEl = document.querySelector('input[name="duty_type"]:checked');
-        if (!dutyTypeEl) {
-          e.preventDefault();
-          alert('Please select a duty type.');
-          return;
-        }
-        
-        if (dutyTypeEl.value === 'Other') {
-          const customDutyType = document.getElementById('otherDutyType').value;
-          if (!customDutyType) {
-            e.preventDefault();
-            alert('Please specify the duty type.');
-            return;
-          }
         }
       });
-      
-      // Update summary function
-      function updateSummary(studentName = null, dutyType = null, hours = null) {
-        const summaryEl = document.getElementById('dutySummary');
-        
-        if (!studentName) {
-          summaryEl.innerHTML = `
-            <p class="mb-1">No student selected</p>
-            <p class="mb-1">No duty type chosen</p>
-            <p class="mb-0">0 hours required</p>
-          `;
-          return;
-        }
-        
-        let html = `<p class="mb-1"><strong>Student:</strong> ${studentName}</p>`;
-        
-        if (dutyType) {
-          html += `<p class="mb-1"><strong>Duty Type:</strong> ${dutyType}</p>`;
-        } else {
-          html += `<p class="mb-1">No duty type chosen</p>`;
-        }
-        
-        if (hours) {
-          html += `<p class="mb-0"><strong>Hours Required:</strong> ${hours}</p>`;
-        } else {
-          html += `<p class="mb-0">0 hours required</p>`;
-        }
-        
-        summaryEl.innerHTML = html;
-      }
+
+      // Password toggle functionality
+      const togglePassword = document.getElementById('togglePassword');
+      const passwordInput = document.getElementById('password');
+      const passwordIcon = document.getElementById('passwordIcon');
+
+      const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
+      const confirmPasswordInput = document.getElementById('confirm_password');
+      const confirmPasswordIcon = document.getElementById('confirmPasswordIcon');
+
+      togglePassword.addEventListener('click', function() {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        passwordIcon.className = type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+      });
+
+      toggleConfirmPassword.addEventListener('click', function() {
+        const type = confirmPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        confirmPasswordInput.setAttribute('type', type);
+        confirmPasswordIcon.className = type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+      });
     });
   </script>
 

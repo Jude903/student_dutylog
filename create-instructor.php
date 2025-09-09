@@ -14,32 +14,29 @@ header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma: no-cache");
 
 // Rest of your protected page content
-// ...
 require_once 'config/config.php';
 
-// Get user role for navigation
-$userRole = $_SESSION['role'] ?? 'student';
-
-// Function to check if user has access to a specific page
-function hasAccess($userRole, $page) {
-    $accessMatrix = [
-        'student' => ['home', 'dashboard', 'log-duty', 'view-duty'],
-        'instructor' => ['home', 'dashboard', 'approve-duty', 'monitor-duty', 'evaluate-student'],
-        'scholarship_officer' => ['home', 'dashboard', 'assign-duty', 'approve-duty', 'monitor-duty', 'evaluate-student'],
-        'superadmin' => ['home', 'dashboard', 'assign-duty', 'approve-duty', 'log-duty', 'view-duty', 'monitor-duty', 'evaluate-student', 'create-student', 'create-instructor', 'create-employee']
-    ];
-
-    return in_array($page, $accessMatrix[$userRole] ?? []);
+// Handle form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = $_POST['username'];
+    $email = $_POST['email'];
+    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+    
+    try {
+        $insertQuery = "INSERT INTO users (username, email, password, role) 
+                       VALUES (:username, :email, :password, 'instructor')";
+        $stmt = $pdo->prepare($insertQuery);
+        $stmt->execute([
+            'username' => $username,
+            'email' => $email,
+            'password' => $password
+        ]);
+        
+        $successMessage = "Instructor account created successfully!";
+    } catch (PDOException $e) {
+        $errorMessage = "Error creating instructor account: " . $e->getMessage();
+    }
 }
-
-// Fetch statistics for the homepage
-$statsQuery = "SELECT 
-    (SELECT COUNT(*) FROM users WHERE role = 'student') as total_students,
-    (SELECT COUNT(*) FROM duties WHERE status = 'completed') as completed_duties,
-    (SELECT COUNT(DISTINCT u.department) FROM users u WHERE u.role = 'student') as departments_count";
-
-$statsStmt = $pdo->query($statsQuery);
-$stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -47,11 +44,12 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <meta name="description" content="PHINMA Cagayan de Oro College Student Duty Log Management System">
-  <meta name="keywords" content="PHINMA COC, student duty, duty log, college management, Cagayan de Oro">
+  <meta name="description" content="PHINMA Cagayan de Oro College Student Duty Assignment System">
+  <meta name="keywords" content="PHINMA COC, student duty, duty assignment, college management, Cagayan de Oro">
 
   <!-- Favicons -->
-  <link href="assets/img/CSDL logo.png" rel="icon">
+  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
 
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com" rel="preconnect">
@@ -67,6 +65,8 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
 
   <!-- Main CSS File -->
   <link href="assets/css/main.css" rel="stylesheet">
+  <link href="assets/css/assign-duty.css" rel="stylesheet">
+  
 </head>
 
 <body class="index-page">
@@ -74,14 +74,31 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
   <header id="header" class="header sticky-top">
     <div class="branding d-flex align-items-center">
       <div class="container position-relative d-flex align-items-center justify-content-between">
-        <a href="index.php" class="logo d-flex align-items-center">
+        <?php
+        // Get user role for navigation
+        $userRole = $_SESSION['role'] ?? 'student';
+
+        // Function to check if user has access to a specific page
+        function hasAccess($userRole, $page) {
+            $accessMatrix = [
+                'student' => ['home', 'dashboard', 'log-duty', 'view-duty'],
+                'instructor' => ['home', 'dashboard', 'approve-duty', 'monitor-duty', 'evaluate-student'],
+                'scholarship_officer' => ['home', 'dashboard', 'assign-duty', 'approve-duty', 'monitor-duty', 'evaluate-student'],
+                'superadmin' => ['home', 'dashboard', 'assign-duty', 'approve-duty', 'log-duty', 'view-duty', 'monitor-duty', 'evaluate-student', 'create-student', 'create-instructor', 'create-employee']
+            ];
+
+            return in_array($page, $accessMatrix[$userRole] ?? []);
+        }
+        ?>
+
+        <a href="index_admin.php" class="logo d-flex align-items-center">
           <img src="assets/img/CSDL logo.png" alt="">
           <h1 class="sitename">CSDL</h1>
         </a>
 
         <nav id="navmenu" class="navmenu">
           <ul>
-            <li><a href="index.php" class="active">Home</a></li>
+            <li><a href="index_admin.php">Home</a></li>
             <li><a href="dashboard.php">Dashboard</a></li>
 
             <?php
@@ -136,93 +153,94 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
     </div>
   </header>
 
+
   <main class="main">
 
-    <!-- Hero Section -->
-    <section id="hero" class="hero section">
-      <div class="container" data-aos="fade-up" data-aos-delay="100">
-        <div class="row align-items-center">
-          <div class="col-lg-12 text-center">
-            <div class="hero-content" data-aos="fade-up" data-aos-delay="200">
-              <span class="subtitle">PHINMA Cagayan de Oro College</span>
-              <h1>Student Duty Log </h1>
-              <p>Comprehensive digital platform for managing, tracking, and evaluating student duties across all departments at PHINMA COC. Enhancing accountability, streamlining workflows, and promoting student engagement in Cagayan de Oro City.</p>
+    <!-- Page Title -->
+    <div class="page-title light-background">
+      <div class="container d-lg-flex justify-content-between align-items-center">
+        <h1 class="mb-2 mb-lg-0">Create Instructor Account</h1>
+        <nav class="breadcrumbs">
+          <ol>
+            <li><a href="index.php">Home</a></li>
+            <li class="current">Create Instructor</li>
+          </ol>
+        </nav>
+      </div>
+    </div><!-- End Page Title -->
 
-              <div class="trust-badges">
-                <div class="badge-item">
-                  <i class="bi bi-people-fill"></i>
-                  <div class="badge-text">
-                    <span class="count"><?php echo number_format($stats['total_students']); ?>+</span>
-                    <span class="label">Enrolled Students</span>
+    <!-- Create Section -->
+    <section id="create" class="assignment section">
+      <div class="container" data-aos="fade-up" data-aos-delay="100">
+        
+        <?php if (isset($successMessage)): ?>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+          <?php echo $successMessage; ?>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <?php endif; ?>
+        
+        <?php if (isset($errorMessage)): ?>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          <?php echo $errorMessage; ?>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <?php endif; ?>
+        
+        <form method="POST" action="create-instructor.php">
+          <div class="row">
+            <div class="col-lg-8 offset-lg-2">
+              <div class="duty-details">
+                <h3 class="section-title">Instructor Account Information</h3>
+                
+                <div class="form-section">
+                  <h5>Basic Information</h5>
+                  <div class="row">
+                    <div class="col-md-6">
+                      <label for="username" class="form-label">Username</label>
+                      <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+                    <div class="col-md-6">
+                      <label for="email" class="form-label">Email</label>
+                      <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
                   </div>
                 </div>
-                <div class="badge-item">
-                  <i class="bi bi-journal-check"></i>
-                  <div class="badge-text">
-                    <span class="count"><?php echo number_format($stats['completed_duties']); ?>+</span>
-                    <span class="label">Duties Completed</span>
+                
+                <div class="form-section">
+                  <h5>Security</h5>
+                  <div class="row">
+                    <div class="col-md-6">
+                      <label for="password" class="form-label">Password</label>
+                      <div class="input-group">
+                        <input type="password" class="form-control" id="password" name="password" required>
+                        <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                          <i class="bi bi-eye" id="passwordIcon"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <label for="confirm_password" class="form-label">Confirm Password</label>
+                      <div class="input-group">
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                        <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword">
+                          <i class="bi bi-eye" id="confirmPasswordIcon"></i>
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div class="badge-item">
-                  <i class="bi bi-building"></i>
-                  <div class="badge-text">
-                    <span class="count"><?php echo $stats['departments_count']; ?></span>
-                    <span class="label">Academic Departments</span>
-                  </div>
+                
+                <div class="d-grid gap-2 mt-4">
+                  <button type="submit" class="btn btn-primary btn-lg" id="createInstructorBtn">Create Instructor Account</button>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </form>
+
       </div>
-    </section>
-
-    <!-- About Section -->
-    <section id="about" class="about section">
-      <div class="container" data-aos="fade-up" data-aos-delay="100">
-        <div class="row align-items-center g-5">
-          <div class="col-lg-12">
-            <div class="about-content text-center" data-aos="fade-up" data-aos-delay="200">
-              <h2>Serving PHINMA COC Since 2020</h2>
-              <p class="lead">The Student Duty Log system at PHINMA Cagayan de Oro College revolutionizes how our institution manages student responsibilities, tracks academic progress, and fosters accountability through innovative digital solutions tailored for our Filipino students.</p>
-              <p>From duty assignments in our Engineering, Business, Education, and Health Sciences departments to performance evaluations, our comprehensive platform streamlines administrative processes while providing students with clear visibility into their academic obligations and achievements.</p>
-
-              <div class="achievement-boxes row g-4 mt-4 justify-content-center">
-                <div class="col-6 col-md-3" data-aos="fade-up" data-aos-delay="300">
-                  <div class="achievement-box">
-                    <h3>5+</h3>
-                    <p>Years of Service</p>
-                  </div>
-                </div>
-                <div class="col-6 col-md-3" data-aos="fade-up" data-aos-delay="400">
-                  <div class="achievement-box">
-                    <h3><?php echo number_format($stats['total_students']); ?>+</h3>
-                    <p>Active Students</p>
-                  </div>
-                </div>
-                <div class="col-6 col-md-3" data-aos="fade-up" data-aos-delay="500">
-                  <div class="achievement-box">
-                    <h3>95%</h3>
-                    <p>Completion Rate</p>
-                  </div>
-                </div>
-                <div class="col-6 col-md-3" data-aos="fade-up" data-aos-delay="600">
-                  <div class="achievement-box">
-                    <h3>150+</h3>
-                    <p>Faculty Members</p>
-                  </div>
-                </div>
-              </div>
-
-              <div class="certifications mt-5" data-aos="fade-up" data-aos-delay="700">
-                <h5>Accreditations & Partnerships</h5>
-                <p>PHINMA Education Network | PACUCOA Accredited | CHED Recognized Programs</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+    </section><!-- /Create Section -->
 
   </main>
 
@@ -301,6 +319,43 @@ $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
 
   <!-- Main JS File -->
   <script src="assets/js/main.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Form validation
+      document.querySelector('form').addEventListener('submit', function(e) {
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
+
+        if (password !== confirmPassword) {
+          e.preventDefault();
+          alert('Passwords do not match.');
+          return;
+        }
+      });
+
+      // Password toggle functionality
+      const togglePassword = document.getElementById('togglePassword');
+      const passwordInput = document.getElementById('password');
+      const passwordIcon = document.getElementById('passwordIcon');
+
+      const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
+      const confirmPasswordInput = document.getElementById('confirm_password');
+      const confirmPasswordIcon = document.getElementById('confirmPasswordIcon');
+
+      togglePassword.addEventListener('click', function() {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        passwordIcon.className = type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+      });
+
+      toggleConfirmPassword.addEventListener('click', function() {
+        const type = confirmPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        confirmPasswordInput.setAttribute('type', type);
+        confirmPasswordIcon.className = type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+      });
+    });
+  </script>
 
 </body>
 

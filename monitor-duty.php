@@ -145,7 +145,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_duty_details' && isset($_
                 'student' => ['home', 'dashboard', 'log-duty', 'view-duty'],
                 'instructor' => ['home', 'dashboard', 'approve-duty', 'monitor-duty', 'evaluate-student'],
                 'scholarship_officer' => ['home', 'dashboard', 'assign-duty', 'approve-duty', 'monitor-duty', 'evaluate-student'],
-                'superadmin' => ['home', 'dashboard', 'assign-duty', 'approve-duty', 'log-duty', 'view-duty', 'monitor-duty', 'evaluate-student']
+                'superadmin' => ['home', 'dashboard', 'assign-duty', 'approve-duty', 'log-duty', 'view-duty', 'monitor-duty', 'evaluate-student', 'create-student', 'create-instructor', 'create-employee']
             ];
 
             return in_array($page, $accessMatrix[$userRole] ?? []);
